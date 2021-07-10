@@ -18,7 +18,6 @@
       background-color: rgb(0,0,0);
       /* color: rgb(200, 200, 200); */
       /* color: rgb(10, 10, 10); */
-      /* color: #f3f; /* TODO: not displaying, probably *should* be handled elsewhere */
       font-family: sans-serif;
       font-size: 2.5vh;  /* TODO: better with it? */
       overflow: hidden;
@@ -145,7 +144,7 @@
     /*.dropdown-content div:hover {background-color: #335}/* Change color of dropdown links on hover */
 
 
-    .dropdown:hover .drop-btn {/* Change the background color of the dropdown button when the dropdown content is shown */
+    .dropdown:hover .drop-btn {/* Hide the dropdown button while dropdown content is being hovered */
       /* background-color: #124; */
       display: none;
     }
@@ -157,8 +156,16 @@
       background-color: #124;
     }
 
+    #draw-size-container {
+      padding: 0;
+      background-color: transparent;
+    }
     .draw-size-option {
       padding: 5px 10px;
+    }
+
+    #mirror-angle-setting-container {
+      margin-bottom: 1.5%;
     }
 
     .mirror-angle-input-option {
@@ -178,7 +185,19 @@
       /* width: 200%; */ /* TODO: this shit doesn't work */
       display: none;
       background-color: #237;
-      border-radius: 0 6px 6px 6px;
+      border-radius: 0 0px 6px 6px;
+      padding: 5px 15px;
+    }
+    
+    #mirror-angle-value-container {
+      color: white;
+      /* padding: 15px 5px; */
+      /* margin-top: 4px; */
+      margin-bottom: 2%;
+    }
+    
+    #tiling-type-input {
+      color: white;
     }
 
     #auto-generate-valid-snowflake {
@@ -204,10 +223,6 @@
       /* border-width: 3px; */
     }
 
-    #draw-size-select {
-      padding: 0;
-      background-color: transparent;
-    }
     
     #use-mirrors-button {
       padding: 0.8% 4%;
@@ -220,6 +235,11 @@
     #tile-order-input {
       font-size: 105%;
     }
+    
+    .color-select-option {
+      width: 13vw;
+      height: 3.5vh;
+    }
   </style>
 </head>
 <body>
@@ -230,26 +250,11 @@
     <button id="drop-btn" class="drop-btn"></button>
     
     
-    <!-- <div class="uiContainer"> -->
-    <div class="dropdown-content uiContainer">
-      <div id="curPlayerMarker" style="position:absolute;">⬤</div>
-      <div><p class="inlineNumber" id="numTakenVerts">0</p>/<p class="inlineNumber" id="numVerts">0</p></div>
-      <div id="scoreContainer" class="uiSubContainer"></div>
-      <div class="uiSubContainer">
-        <span id="schlafliInputContainer"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid with<br>
-        <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> players
-        <!-- <input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">
-        <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">
-        <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> -->
-        <button onclick="restart()"><b>Go</b></button>
-      </div>
-    </div>
-    
     
     <div class="dropdown-content" id="color-select-dropdown"></div>
     <!-- <div class="dropdown-content" style="width:40vw"> -->
     <div class="dropdown-content">
-      <div id="draw-size-select" style="margin-bottom: 1.8vh;"><!-- pen size -->
+      <div id="draw-size-container" style="margin-bottom: 1.8vh;"><!-- pen size -->
         <span class="simple-button draw-size-option" onclick="drawSize=1">1px</span>
         <span class="simple-button draw-size-option" onclick="drawSize=3">3px</span>
         <span class="simple-button draw-size-option" onclick="drawSize=10">10px</span>
@@ -269,11 +274,27 @@
       
       <form style="margin-bottom: 3%" id="tiling-type-input" onchange="changeTilingType()"></form>
       <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="generateValidTilingVertArr()">Auto-generate</button>
+      
+      <hr>
+      
+      <div class="dropdown-content uiContainer">
+        <div id="curPlayerMarker" style="position:absolute;">⬤</div>
+        <div><p class="inlineNumber" id="numTakenVerts">0</p>/<p class="inlineNumber" id="numVerts">0</p></div>
+        <div id="scoreContainer" class="uiSubContainer"></div>
+        <div class="uiSubContainer">
+          <span id="schlafliInputContainer"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid with<br>
+          <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> players
+          <!-- <input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">
+          <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">
+          <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> -->
+          <button onclick="restart()"><b>Go</b></button>
+        </div>
+      </div>
     </div>
   </div>
   
   <script type="text/javascript">
-    // "use strict";
+    "use strict";
     function rand(max=1) {
       return Math.random()*max;
     }
@@ -292,7 +313,7 @@
     function clamp(num, val=1) {//num to clamp, special value
       return 1-(val/(num+val));
     }
-    function colorLerp(x, n1, n2) {
+    function colorLerp(n1, n2, x=0.5) {
       return n2.sub(n1).mult(x).add(n1);
     }
     function cutoff(x, min, max) {
@@ -328,6 +349,21 @@
       }
       // return false;// TODO: is this fine?
     }
+    function arraysShallowEqual(a, b) {
+      var i = a.length;
+      if (i != b.length) return false;
+      while (i--) {
+        if (a[i] !== b[i]) return false;
+      }
+      return true;
+    };
+    function arrayPush(arr, el) {//pushes el to arr and returns arr
+      arr.push(el);
+      return arr;
+    }
+    function mod(v, m) {//%, but works properly with negative numbers
+      return (v%m+m)%m;
+    }
 
     /* TODO:
       replace a bunch of 0.001 epsilons
@@ -346,8 +382,617 @@
       
       
       
+      symmetry group selection (chiral and achiral polygons, replace mirrorM with mirror angle (?))
+      word ui
+      just drawing previews is demanding? (canvas transformations might help???)
+      detailed drawing mode (zoom in on one fundamental triangle)
+      better, more efficient undo (could fairly easily be much more efficient one level deep)
+      better UI
+      canvas.width etc shorten to width or w
+      find all TO-DOs
+      better resizing
+      erase pointless commented code
+      change page title?
+      refactor all the things
+      replace var with let?
     */
+    
+    
+    function wordPeriodLen(w) {
+      let period=1;
+      let periodFound=false;
+      for (; period < w.length+1; period++) {
+        periodFound=true;
+        for (var j = period; j < w.length; j++) {
+          if (w[j-period]!=w[j]) {
+            periodFound=false;
+            break;
+          }
+        }
+        if (periodFound) {
+          break;
+        }
+      }
+      return period;
+    }
+    function wordUV(w) {// TODO: delete after making analogous method of DSF
+      let period=wordPeriodLen(w);
 
+      let uLen=w.length % period;
+      let newW=w.slice();
+      let u=newW.splice(0, uLen);
+      let v=newW.slice(0, period-uLen);
+
+      return {u: u, v: v};
+    }
+    function wordRho(r, w) {//rotate the word w by r (add r to each element, modulo the tileOrder)
+      let res=[];
+      for (var i = 0; i < w.length; i++) {
+        res[i]=((w[i]+r)%tileOrder+tileOrder)%tileOrder;
+      }
+      return res;
+    }
+    function wordSplitUVAndVU(uv, vu) {//input: uv and vu; output: u and v (// TODO: only hopefully, need to check better)
+      if (uv.length==vu.length) {
+        let d=uv.length;
+        let i=0;
+        for (; i < d; i++) {
+          let done=true;
+          for (var j = i; j < d; j++) {
+            if (uv[j-i]!=vu[j]) {
+              done=false;
+              break;
+            }
+          }
+          if (done) break;
+        }
+        let u=uv.slice(0, d-i);
+        let v=vu.slice(0, i);
+        if (!arraysShallowEqual(u.slice().concat(v), uv) || !arraysShallowEqual(v.slice().concat(u), vu)) {
+          console.warn("wordSplitUVAndVU failed");
+          console.log("i", i, "uv", uv, "vu", vu);
+          console.log("u", u, "v", v);
+        }
+        return {u:u, v:v};
+      }
+      alert("alert005 wordSplitUVAndVU bad input");
+      return {u:[], v:[]};
+    }
+    function DSF(w0, w1, operatorTrace=[]) {//most of the algorithms here are from ComProp // TODO: it's not really DSF, but some modification/generalization of it.
+      // TODO: add a tileOrder property (maybe i want to generate and display tiles that aren't selected for user drawing)
+      this.w0=w0.slice();
+      this.w1=w1.slice();
+      this.operatorTrace=operatorTrace;
+      this.getWord=function(i) {// TODO: untested
+        if ((i%2+2)%2==0) {
+          return wordRho(i/2, w0);
+        }
+        else if ((i%2+2)%2==1) {
+          return wordRho((i-1)/2, w1);
+        }
+        else {
+          alert("alert004 i isn't an integer");
+          return [];
+        }
+      }
+      this.getU0V0=function() {// TODO: basically like getu1v1, simplify!
+        // if (this.w1.length!=0) {// TODO:
+        let w1=this.w1.slice();
+        let wNegative1=wordRho(-1, w1);
+        let uv=w1.slice().reverse().concat(wNegative1);
+        let vu=w1.slice().concat(wNegative1.slice().reverse());
+        
+        let fromSplitFunc=wordSplitUVAndVU(uv, vu);
+        
+        if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
+          console.log("");
+          console.warn("alert002 getU0V0");
+          // alert("alert002 getU0V0");
+          
+          let fromFunc=wordUV(this.w0);
+          let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
+          let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
+          // console.log("check in getU0V0", fromFunc.u.slice().concat(fromFunc.v), uvGGG, "and", fromFunc.v.slice().concat(fromFunc.u), vuGGG);
+          if (!arraysShallowEqual(fromFunc.u.slice().concat(fromFunc.v), uvGGG) || !arraysShallowEqual(fromFunc.v.slice().concat(fromFunc.u), vuGGG)) {// TODO:
+            console.log("");
+            console.warn("alert003 getU0V0");
+            // alert("alert002 getU1V1");
+          }
+          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: not a good check
+            return fromFunc;
+          }
+          return fromFunc;
+        }
+        // console.log("i", i, "u0v0", uv, "v0u0", vu);
+        return {u:fromSplitFunc.u, v:fromSplitFunc.v};
+      }
+      this.getU1V1=function() {
+        // if (this.w1.length!=0) {// TODO:
+        let w0=this.w0.slice();
+        let w2=wordRho(1, w0);
+        let uv=w2.slice().reverse().concat(w0);
+        let vu=w2.slice().concat(w0.slice().reverse());
+        
+        let fromSplitFunc=wordSplitUVAndVU(uv, vu);
+        
+        if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
+          console.log("");
+          console.warn("alert002 getU1V1");
+          // alert("alert002 getU1V1");
+          
+          let fromFunc=wordUV(this.w1);
+          let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
+          let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
+          // console.log("check in getU1V1", fromFunc.u.slice().concat(fromFunc.v), uvGGG, "and", fromFunc.v.slice().concat(fromFunc.u), vuGGG);
+          if (!arraysShallowEqual(fromFunc.u.slice().concat(fromFunc.v), uvGGG) || !arraysShallowEqual(fromFunc.v.slice().concat(fromFunc.u), vuGGG)) {// TODO:
+            console.log("");
+            console.warn("alert003 getU1V1");
+            // alert("alert002 getU1V1");
+          }
+          // console.log(fromFunc);
+          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: not a good check
+            return fromFunc;
+          }
+          return fromFunc;
+        }
+        // console.log("i", i, "u1v1", uv, "v1u1", vu);
+        return {u:fromSplitFunc.u, v:fromSplitFunc.v};
+      }
+      this.getU0ConcatV0=function() {
+        if (this.w1.length!=0) {
+          return this.w1.slice().reverse().concat(wordRho(-1, this.w1));
+        }
+        else {
+          let fromFunc=wordUV(this.w0);
+          if (fromFunc.u.length>0 && fromFunc.v.length>0) {
+            return fromFunc.u.concat(fromFunc.v);
+          }
+          else {
+            alert("alert005 kinda bad but mainly bad input");
+            console.log("alert005 kinda bad but mainly bad input");
+            return [];
+          }
+        }
+        
+        // let fromFunc=wordUV(this.w0);
+        // // console.log(fromFunc);
+        // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
+        //   return fromFunc.u.concat(fromFunc.v);
+        // }
+        // else if (this.w1.length!=0) {
+        //   return this.w1.slice().reverse().concat(wordRho(-1, this.w1));
+        // }
+        // // else {// TODO: i think this is only in the case of a hexagon
+        // //   console.log("vvvv");
+        // //   return wordRho(1, this.w1).concat(this.w1);
+        // // }
+        // console.log("bad");// TODO: temporary
+        // return fromFunc;// TODO: temporary
+      }
+      this.getU1ConcatV1=function() {
+        if (this.w0.length!=0) {
+          return wordRho(1, this.w0).reverse().concat(this.w0);
+        }
+        else {
+          let fromFunc=wordUV(this.w1);
+          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: ????? is this a good check? i don't think so
+            return fromFunc.u.concat(fromFunc.v);
+          }
+          else {
+            alert("alert005 kinda bad but mainly bad input");
+            console.log("alert005 kinda bad but mainly bad input");
+            return [];
+          }
+        }
+        
+        // let fromFunc=wordUV(this.w1);
+        // // console.log(fromFunc);
+        // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
+        //   return fromFunc.u.concat(fromFunc.v);
+        // }
+        // else if (this.w0.length!=0) {
+        //   return wordRho(1, this.w0).reverse().concat(this.w0);
+        // }
+        // // else {// TODO: i think this is only in the case of a hexagon
+        // //   console.log("vvvv");
+        // //   return this.w0.slice().concat(wordRho(1, this.w0));
+        // // }
+        // console.log("bad");// TODO: temporary
+        // return fromFunc;// TODO: temporary
+        //
+        // // let fromFunc=wordUV(this.w1);
+        // // console.log(fromFunc);
+        // // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
+        // //   console.log("|u1|, |v1| > 0");
+        // //   return fromFunc.u.concat(fromFunc.v);
+        // // }
+        // // else {
+        // //   console.log("|u1| or |v1| == 0");
+        // //   if (this.w0.length!=0) {
+        // //     console.log("|w0| > 0");
+        // //     return wordRho(1, this.w0).reverse().concat(this.w0);
+        // //   }
+        // //   else {
+        // //     console.log("|w0| == 0");
+        // //   }
+        // // }
+        // // // else {// TODO: i think this is only in the case of a hexagon
+        // // //   console.log("vvvv");
+        // // //   return this.w0.slice().concat(wordRho(1, this.w0));
+        // // // }
+        // // console.log("bad");// TODO: temporary
+        // // return fromFunc;// TODO: temporary
+      }
+      this.getEdgeWord=function() {//get w0 concat w1  (the edge)
+        return w0.concat(this.w1);
+      }
+      this.getBoundaryWord=function() {//get w0 concat w1 concat wordRho(1, w0) concat wordRho(1, w1) ...  (the whole boundary)
+        let edgeWord=this.getEdgeWord();
+        let res=edgeWord.slice();//copy of edgeWord
+        for (var i = 1; i < tileOrder; i++) {
+          for (var j = 0; j < edgeWord.length; j++) {// TODO: use wordRho instead of extra loop
+            res.push((edgeWord[j]+i)%tileOrder);
+          }
+        }
+        return res;
+      }
+      this.getEdgeVector=function() {//get the displacement vector of the path of one edge (assuming 0 means rightwards and every segment is of unit length)
+        let edgeVector=new Vec2();
+        let edgeWord=this.getEdgeWord();
+        for (var i = 0; i < edgeWord.length; i++) {
+          edgeVector=new Vec2(edgeVector.x+Math.cos(edgeWord[i]*TAU/tileOrder), edgeVector.y-Math.sin(edgeWord[i]*TAU/tileOrder));
+        }
+        return edgeVector;
+      }
+      this.getMaxDistFromCenter=function() {//distance from the farthest vertex to the center of the tile
+        let edgeVec=this.getEdgeVector();
+        let center=edgeVec.rotate(HPI-PI/tileOrder).mult(1/(2*Math.sin(PI/tileOrder)));//vector to the center of the tile
+        // console.log(edgeVec, center);
+        // console.log(edgeVec.len()/center.len());
+        // console.log(center.ang()-edgeVec.ang());
+        let edgeWord=this.getEdgeWord();
+        let curPos=new Vec2();
+        let maxSqDist=0;
+        for (var i = 0; i < edgeWord.length; i++) {
+          curPos=new Vec2(curPos.x+Math.cos(edgeWord[i]*TAU/tileOrder), curPos.y-Math.sin(edgeWord[i]*TAU/tileOrder));
+          let curSqDist=curPos.sqDist(center);
+          if (maxSqDist<curSqDist) maxSqDist=curSqDist;
+        }
+        return Math.sqrt(maxSqDist);
+      }
+      this.len=function() {
+        return 6*(this.w0.length+this.w1.length);
+      }
+      this.trim0=function() {
+        let newW0=this.w0.slice(0, -wordPeriodLen(this.w0));// TODO: will this always work?
+        return new DSF(newW0, this.w1, arrayPush(this.operatorTrace.slice(), "trim0"));
+      }
+      this.trim1=function() {
+        let newW1=this.w1.slice(0, -wordPeriodLen(this.w1));
+        return new DSF(this.w0, newW1, arrayPush(this.operatorTrace.slice(), "trim1"));
+      }
+      this.trimIfPossible=function() {
+        if (this.w0.length>2*this.w1.length && this.w1.length>0) {
+          return this.trim0();
+        }
+        else if (this.w1.length>2*this.w0.length && this.w0.length>0) {
+          return this.trim1();
+        }
+        else {
+          return this;
+        }
+      }
+      this.swap0=function() {
+        let newW0=this.w0.slice().reverse();
+        let uv=this.getU1V1();
+        let newW1=this.w1.slice(uv.u.length).concat(uv.v);
+        return new DSF(newW0, newW1, arrayPush(this.operatorTrace.slice(), "swap0"));
+      }
+      this.swap1=function() {
+        let newW1=this.w1.slice().reverse();
+        let uv=this.getU0V0();
+        let newW0=this.w0.slice(uv.u.length).concat(uv.v);
+        return new DSF(newW0, newW1, arrayPush(this.operatorTrace.slice(), "swap1"));
+        
+        // TODO: use rotation for all duplicate actions?
+        // let rotatedResult=new DSF(this.w1, wordRho(1, this.w0)).swap0();
+        // return new DSF(rotatedResult.w1, wordRho(1, rotatedResult.w0));// TODO: rotating forwards a second time, should rotate back? DSF(rho(-1, w1), w0) or smth like that
+      }
+      this.extend0=function() {
+        if (this.w1.length==0) {
+          console.log("bad input to extend");
+          return new DSF([], [], arrayPush(this.operatorTrace.slice(), "extend0"));
+        }
+        else {
+          // let onePeriod=this.w0.slice(0, wordPeriodLen(this.w0));
+          // return new DSF(onePeriod.concat(this.w0), this.w1);
+          // let u0v0=this.getU0V0();
+          // return new DSF(this.w0.concat(u0v0.v).concat(u0v0.u), this.w1);
+          // console.log("u0*v0", this.getU0ConcatV0());
+          return new DSF(this.getU0ConcatV0().concat(this.w0), this.w1, arrayPush(this.operatorTrace.slice(), "extend0"));
+        }
+      }
+      this.extend1=function() {
+        if (this.w0.length==0) {
+          console.log("bad input to extend");
+          return new DSF([], [], arrayPush(this.operatorTrace.slice(), "extend1"));
+        }
+        else {
+          // let onePeriod=this.w1.slice(0, wordPeriodLen(this.w1));
+          // return new DSF(this.w0, onePeriod.concat(this.w1));
+          return new DSF(this.w0, this.getU1ConcatV1().concat(this.w1), arrayPush(this.operatorTrace.slice(), "extend1"));
+        }
+      }
+      this.reduceHoweverPossible=function() {// TODO:
+        // if (w0) {
+        //
+        // }
+      }
+      this.drawWithSettings=function(settings) {
+        let ctx=settings.context;
+        ctx.lineWidth=1;
+        ctx.strokeStyle=settings.strokeStyle;
+        ctx.fillStyle=settings.fillStyle;
+        
+        let edgeVector=this.getEdgeVector();
+        let maxDistFromCenter;
+        if (settings.useDistFromCenter) {
+          maxDistFromCenter=this.getMaxDistFromCenter();
+        }
+        // console.log(maxDistFromCenter);
+        
+        // let segmentLength=1/maxDistFromCenter;
+        const edgeAngleOffset=edgeVector.ang()+HPI;
+        // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
+        // let startPos=new Vec2();
+        // switch (tileOrder) {
+        //   case 6:
+        //     startPos=new Vec2(ROOT3/2, 0.5);
+        //     break;
+        //   case 4:
+        //     startPos=new Vec2(0.5, 0.5);
+        //     break;
+        //   case 3:
+        //     startPos=new Vec2(0.5/ROOT3, 0.5);
+        //     break;
+        //   default:// TODO: maybe include other cases?
+        //     startPos=new Vec2(-0.5, 0.5);
+        // }
+        // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+        const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+        // TODO: i don't know why this works
+        // set startPos - the point where the path begins drawing
+        // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+        
+        const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
+        // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
+        // for (var ttr = 0; ttr < 1; ttr++) {
+        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
+          let transf=tilingTransforms[ttr];
+          //define the tiles' contact point as the beginning of the boundary
+          let curPos=startPos;
+          
+          ctx.beginPath();
+          // ctx.moveTo(curScreenPos.x, curScreenPos.y);
+          let edgeWord=this.getEdgeWord();
+          
+          for (var j = 0; j < tileOrder; j++) {
+            for (var i = 0; i < edgeWord.length; i++) {
+              let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
+              // curPos=new Vec2(curPos.x+segmentLength*Math.cos(ang), curPos.y-segmentLength*Math.sin(ang));
+              curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
+              let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
+              let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+              // let curScreenPos=transf.applyTo(curPos.mult(1/edgeVector.len())).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+              // let curScreenPos=transf.applyTo(curPos.mult(1/maxDistFromCenter)).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//individual display
+              // let curScreenPos=transf.applyTo(curPos).mult(settings.DSFRelativeRadius/maxDistFromCenter).add(settings.pos).screen();//individual
+              ctx.lineTo(curScreenPos.x, curScreenPos.y);
+            }
+          }
+          ctx.closePath();
+          ctx.fill("evenodd");
+          ctx.stroke();
+          // ctx.stroke();//double for less jagged look
+        }
+        // //debug point at center of canvas
+        // context.fillStyle="#f00";
+        // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
+      }
+      this.drawToWholeScreen=function() {
+        let settings=new DSFDrawingSettings();
+        settings.DSFRelativeRadius=globalScaling;
+        settings.useTilingTransforms=true;
+        // settings.context=changingContext;
+        // settings.pos=new Vec2(1, 0).mult(globalScaling);
+        // settings.fillStyle="#048c";
+        this.drawWithSettings(settings);
+      }
+      this.isEqualTo=function(d) {
+        if (this.w0.length==d.w0.length && this.w1.length==d.w1.length) {
+          for (var i = 0; i < this.w0.length; i++) {
+            if (this.w0[i]!=d.w0[i]) return false;
+          }
+          for (var i = 0; i < this.w1.length; i++) {
+            if (this.w1[i]!=d.w1[i]) return false;
+          }
+          return true;
+        }
+        else {
+          return false;
+        }
+      }
+      this.turningNumber=function() {
+        if (this.len()==0) {
+          return 0;
+        }
+        let T=0;
+        let word=this.getBoundaryWord();
+        for (var i = 0; i < word.length; i++) {
+          let prevLetter= i==0 ? word[word.length-1] : word[i-1];
+          let curTurn=mod(word[i]-prevLetter, tileOrder);// (w[i]-w[i-1]) % tileOrder
+          if (curTurn!=tileOrder/2) {
+            if (curTurn>tileOrder/2) curTurn-=tileOrder;
+            T+=curTurn;
+          }
+        }
+        return T/tileOrder;
+      }
+      this.isValidInSomeNotYetClearWay=function() {// TODO:
+        let edge0=this.w0.slice().concat(this.w1);
+        let edge1=this.w1.slice().concat(wordRho(1, this.w0));
+        // console.log("first test", arraysShallowEqual(edge0, edge0.slice().reverse()), "second", arraysShallowEqual(edge1, edge1.slice().reverse()));
+        // console.log(edge1, edge1.slice().reverse());
+        // TODO: is turning number needed?
+        // console.log(Math.abs(this.turningNumber()));
+        // if (arraysShallowEqual(edge0, edge0.slice().reverse()) && arraysShallowEqual(edge1, edge1.slice().reverse()) && Math.abs(this.turningNumber())==1) {
+        if (arraysShallowEqual(edge0, edge0.slice().reverse()) && arraysShallowEqual(edge1, edge1.slice().reverse())) {
+          return true;
+        }
+        return false;
+      }
+      this.isValidPolyform=function() {// TODO: would likely be useful
+        
+      }
+    }
+    function DSFDrawingSettings() {
+      this.context=context;
+      this.pos=new Vec2();
+      this.DSFRelativeRadius=DSFGridScaling;// TODO: rename // TODO: different default?
+      this.strokeStyle="#fff";
+      this.fillStyle="#0000";
+      this.useTilingTransforms=false;
+      this.useDistFromCenter=false;
+    }
+    
+    // var curDSF=new DSF([0,1,0,1], [2,1,2,1,0,1,0]);
+    // var curDSF=new DSF([0], [1,0,1,0]);
+    // var curDSF=new DSF([1,0,1,0], [1]);
+    // var curDSF=new DSF([1,0,1,0,5,0,5,4,5,4], [5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1]);
+    // var curDSF=new DSF([5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1], [2,1,2,1,0,1,0,5,0,5]);
+    
+    function logCurDSFInfo() {
+      console.log("%c"+curDSF.w0+" and "+curDSF.w1, "font-size: 180%; color: #9f6; padding-top:2%; padding-bottom: 2%");
+      console.log(wordRho(-1, curDSF.w0), wordRho(-1, curDSF.w1), curDSF.w0, curDSF.w1, wordRho(1, curDSF.w0), wordRho(1, curDSF.w1));
+      console.log("%c                                                   ", "display: inline-block; border: 2px solid lightgray; font-size:1px");
+      // console.log("%cha", "border-radius:10px");
+      let uv0=curDSF.getU0V0();
+      console.log("u0", uv0.u, "v0", uv0.v);
+      let uv1=curDSF.getU1V1();
+      console.log("u1", uv1.u, "v1", uv1.v);
+      console.log("%c                                                   ", "display: inline-block; border: 2px solid lightgray; font-size:1px");
+    }
+    
+    // regular polygons:
+    // var curDSF=new DSF([], [0]);
+    // curDSF=curDSF.extend0();
+    var curDSF=new DSF([0], []);
+    curDSF=curDSF.extend1();
+    
+    // curDSF=curDSF.swap1();// TODO: generation seems broken
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.extend0();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.trimIfPossible();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.extend0();
+    // curDSF=curDSF.extend1();
+    
+    // logCurDSFInfo();
+    // console.log("%cresult", "font-size:200%; padding:1%");
+    // console.log(curDSF.w0, curDSF.w1);
+    console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
+    
+    function setDrawingToCurDSF() {//set the mirror angle to that of curDSF, so you can draw inside of the path generated by curDSF
+      let edgeVec=curDSF.getEdgeVector();
+      // console.log(edgeVec);
+      // console.log(edgeVec.y/edgeVec.x);
+      // console.log(Math.abs(edgeVec.y/edgeVec.x));
+      changeMirrorAngle(edgeVec.y/edgeVec.x);
+      // changeMirrorAngle(Math.tan(edgeVec.ang()));
+    }
+    var resultingDSFArray=[];
+    function generateDSFGrid() {
+      const gridHeight=4;
+      const gridWidth=Math.floor(gridHeight*canvas.width/canvas.height);
+      const numToGenerate=gridHeight*gridWidth;
+      // const UOperatorNames=["extend0", "extend1", "swap0", "swap1"];
+      let T=[];
+      resultingDSFArray=[];
+      let Q=[curDSF];//words on which no operations have been done
+      while (resultingDSFArray.length<numToGenerate) {//generate into T until its length reaches numToGenerate
+        if (Q.length==0) {
+          console.warn("Q ran out of elements (should be impossible in standard conditions)!");
+          break;
+        }
+        // let S=Q.pop();
+        let S=Q.shift();
+        
+        let SIsNotYetInT=true;
+        for (var ti = 0; ti < T.length; ti++) {//check if S is in T
+          if (S.isEqualTo(T[ti])) SIsNotYetInT=false;
+        }
+        if (SIsNotYetInT) {
+          T.push(S);
+          // console.log(S.isValidInSomeNotYetClearWay());// TODO: always true, even when self-crossing
+          if (S.isValidInSomeNotYetClearWay()) resultingDSFArray.push(S);
+        }
+        
+        let U=[S.extend0(), S.extend1(), S.swap0(), S.swap1()];
+        // console.log(U);
+        // console.log(S.extend1());
+        for (var ui = 0; ui < U.length; ui++) {
+          let alreadyGenerated=false;
+          
+          for (var qi = 0; qi < Q.length; qi++) {//check if U[ui] is in Q
+            if (Q[qi].isEqualTo(U[ui])) alreadyGenerated=true;
+          }
+          for (var ti = 0; ti < T.length; ti++) {//check if U[ui] is in T
+            if (T[ti].isEqualTo(U[ui])) alreadyGenerated=true;
+          }
+          // console.log("!alreadyGenerated", !alreadyGenerated);
+          if (!alreadyGenerated) {
+            // console.log("U[ui].length>S.length", U[ui].length>S.length);
+            // console.log(U[ui], S);
+            if (U[ui].len()>S.len()) {
+              Q.push(U[ui]);
+            }
+          }
+        }
+      }
+      console.log("resultingDSFArray", resultingDSFArray);
+      let settings=new DSFDrawingSettings();
+      settings.fillStyle="#8a1";
+      // settings.DSFRelativeRadius=0.4/gridHeight;
+      // settings.DSFRelativeRadius=0.8/gridHeight;
+      // settings.DSFRelativeRadius=0.9/gridHeight;
+      settings.DSFRelativeRadius=DSFGridScaling/gridHeight;
+      settings.useDistFromCenter=true;
+      
+      for (var i = 0; i < gridHeight; i++) {
+        for (var j = 0; j < gridWidth; j++) {
+          let wordIndex=i*gridWidth+j;
+          // if (wordIndex>=1) {
+          if (wordIndex>=resultingDSFArray.length) {//ran out of tiles! (normally shouldn't be possible)
+            return undefined;
+          }
+          settings.pos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight);
+          resultingDSFArray[wordIndex].drawWithSettings(settings);
+          
+          ////debug points (centers of tiles)
+          // context.fillStyle="#f00";
+          // let curPos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight).screen();
+          // context.fillRect(curPos.x-1, curPos.y-1, 2, 2);
+        }
+      }
+      // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
+    }
+    
+    
+    
+    
     var schlafliSymbol=[5, 4];
     // var schlafliSymbol=[4, 5];
     // var schlafliSymbol=[6, 4];
@@ -356,21 +1001,131 @@
     // var schlafliSymbol=[10, 3];
     // var schlafliSymbol=[3, 8];
     // var schlafliSymbol=[3, 27];
-
+    
     // var schlafliSymbol=[4, 4];
-
+    
     var canvas=document.getElementById("canvas");
       var context=canvas.getContext("2d");
+      
+      var changingCanvas=document.getElementById("changing-canvas");
+      var changingContext=changingCanvas.getContext("2d");
+      var dropBtn=document.getElementById("drop-btn");
+      var useMirrorsButton=document.getElementById("use-mirrors-button");
+      var tileOrderInput=document.getElementById("tile-order-input");
+      var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
+      var mirrorAngleContainer=document.getElementById("mirror-angle-container");
+      
       const TAU=2*Math.PI;
-      const PI=Math.PI;
-      const HPI=Math.PI/2;
-      const PHI=(Math.sqrt(5)+1)/2;
-      const HALFROOT3=Math.sqrt(3)/2;
-      var paused=false;
-      var frameSkip=10;
+        const PI=Math.PI;
+        const HPI=Math.PI/2;
+        const PHI=(Math.sqrt(5)+1)/2;
+        const ROOT2=Math.sqrt(2);
+        const ROOT3=Math.sqrt(3);
+        const HALFROOT3=Math.sqrt(3)/2;
+      var paused=true;
+      var frameSkip=1;// TODO: what's the right value? (10 in hyp, 1 in snow?)
       var fReqs=frameSkip;
+      var colorChangeSteps=0;
       var keys=[];
-      var height=100;
+      var height=100;// TODO: use this instead of canvas.height, similarly do for width (or delete this)
+      
+      
+      //snowflakes
+      var mousePositions=[];//mouse locations as Vec2 for individual points
+      var movements=[];      //
+      var movementColors=[]; //
+      var movementSizes=[];  // TODO: make these 3 into an object array
+      var curMovement=-1;//index of which movement (in the movements array) is currently happening or which has last been finished
+      var globalScaling=0.4;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
+      var DSFGridScaling=0.85;//applies to generateDSFGrid
+      const minFramesSinceResize=10;//if the window is being constantly resized (slow dragging), resize the canvas every minFramesSinceResize frames
+      var framesSinceResize=minFramesSinceResize;
+      var resizeRequested=true;//has the window been resized while the canvas hasn't yet?
+      const mouseSlowingFactor=1.5;//0-infinity, how much mouse movement is smoothed out, see equation in mousemove event
+      
+      // var tileOrder= 4 ;
+      // var tilingTypeIndex= 1 ;
+      var tileOrder= 6 ;
+      var tilingTypeIndex= 2 ;
+      // var tileOrder= 3 ;
+      // var tilingTypeIndex= 3 ;
+      // var tileOrder= 12 ;
+      // var tilingTypeIndex= 1 ;
+      
+      tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
+      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"]];
+      for (var i = 0; i < tilingTypes.length; i++) {
+        let t=tilingTypes[i];//the current tiling type
+        document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
+      }
+      document.getElementById("tiling-type-"+tilingTypeIndex).checked=true;
+      var tilingTypeName;
+      var initialDrawingReady=false;
+
+      function invertUseMirrors() {
+        setUseMirrors(!useMirrors);
+      }
+      function setUseMirrors(u) {
+        if (useMirrors!==u) {
+          useMirrors=u;
+          if (useMirrors) {
+            useMirrorsButton.style.backgroundColor="#16f";
+            useMirrorsButton.innerHTML="Dihedral";
+            mirrorAngleContainer.style.opacity=1;
+          }
+          else {
+            useMirrorsButton.style.backgroundColor="#666";
+            useMirrorsButton.innerHTML="Chiral";
+            mirrorAngleContainer.style.opacity=0.5;
+          }
+          setInTileTransforms();
+          clearAll();
+          autoGenerateButtonClickability();
+        }
+      }
+      var useMirrors;//the tile is either mirror symmetrical (true) or chiral (false)
+      setUseMirrors(true);
+
+      var curMirrorAngleInput=0;
+      var mirrorAngleInputOptionsArr=[
+        ["k=√3/x", function(x){ return ROOT3/x; }, "Slope=√3/", ""],
+        ["k=x", function(x){ return x; }, "Slope=", ""],
+        ["θ=x <i>rad</i>", function(x){ return Math.tan(x); }, "Angle=", "<i>rad</i>"],
+        ["θ=x°", function(x){ return Math.tan(x/360*TAU); }, "Angle=", "°"]
+      ]
+      function setCurMirrorAngleInput(curInput=0) {
+        curMirrorAngleInput=curInput;
+        for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {
+          document.getElementById("mirror-angle-number-input-container-"+i).style.display="none";
+          document.getElementById("mirror-angle-input-option-"+i).style.backgroundColor="#124";
+        }
+        document.getElementById("mirror-angle-number-input-container-"+curMirrorAngleInput).style.display="inline";
+        document.getElementById("mirror-angle-input-option-"+curMirrorAngleInput).style.backgroundColor="#237";
+        changeMirrorAngle();
+      }
+      for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {//add color select elements
+        // TODO: this is dumb
+        document.getElementById("mirror-angle-setting-container").innerHTML+="<span class='mirror-angle-input-option' id='mirror-angle-input-option-"+i+"' onclick='setCurMirrorAngleInput("+i+")'>"+mirrorAngleInputOptionsArr[i][0]+"</span>";
+        document.getElementById("mirror-angle-value-container").innerHTML+="<div class='mirror-angle-number-input-container' id='mirror-angle-number-input-container-"+i+"'>"+mirrorAngleInputOptionsArr[i][2]+"<input class='mirror-angle-number-input' id='mirror-angle-number-input-"+i+"' type='number' step='any' value='15' onchange='changeMirrorAngle()'>"+mirrorAngleInputOptionsArr[i][3]+"<br>";
+      }
+      setCurMirrorAngleInput();
+
+      function canAutoGenerateGeometrically() {// TODO: not finished, tested or used
+        // return initialDrawingReady && (
+        //   (tileOrder==6 && tilingTypeName=="hex") ||
+        //   (tileOrder==4 && tilingTypeName=="square")
+        // );
+        return initialDrawingReady && tileOrder==6 && tilingTypeName=="hex" && useMirrors;
+      }
+      function autoGenerateButtonClickability() {//update whether the tiling auto-generation button can be clicked or is greyed out
+        // let clickability=(initialDrawingReady && tileOrder==6 && tilingTypeName=="hex");
+        let clickability=canAutoGenerateGeometrically();
+        autoGenerateButton.disabled=!clickability;
+      }
+      
+      
+      
+      //hyperbolic
       var P=[];//Polygons array
       var V=[];//Vertices array
       const radius=1;//has to be 1
@@ -389,16 +1144,16 @@
       var poincareEdgeLength;
       var isEuclidean=false;
       var vertexCircleRadius=0.35;
-
-    function distortion(vec) {
-      return vec;//do nothing function
-      // return new Vec2(Math.sin(vec.x*HPI), Math.sin(vec.y*HPI));
-      // let dist=vec.len();
-      // return vec.mult( Math.sin(dist*HPI) /dist);
-      // return vec.mult( Math.asin(dist)/HPI /dist);
-    }
-
-    if(true){// COLORS and color gradients used
+      
+      function distortion(vec) {
+        return vec;//do nothing function
+        // return new Vec2(Math.sin(vec.x*HPI), Math.sin(vec.y*HPI));
+        // let dist=vec.len();
+        // return vec.mult( Math.sin(dist*HPI) /dist);
+        // return vec.mult( Math.asin(dist)/HPI /dist);
+      }
+    
+    ;//COLORS
       function Color(r=255, g=0, b=255, a=1) {
         this.r=r;
         this.g=g;
@@ -436,6 +1191,9 @@
         this.mult=function(v) {
           return new Color(this.r*v, this.g*v, this.b*v);
         }
+        this.multColor=function(c) {
+          return new Color(this.r*c.r/256, this.g*c.g/256, this.b*c.b/256);
+        }
         this.rgb=function() {
           return "rgb("+this.r+","+this.g+","+this.b+")";
         }
@@ -450,6 +1208,36 @@
             return n*(1-amp)+128*amp;
           });
         }
+      }
+      function ColorFromHSL(h=5/6, s=1, l=0.5, a=1) {
+        // TODO: this is dumb
+        h=(h%1+1)%1;
+        let c = (1 - Math.abs(2 * l - 1)) * s,
+            x = c * (1 - Math.abs((h*6) % 2 - 1)),
+            m = l - c/2,
+            r = 0,
+            g = 0,
+            b = 0;
+
+        if (0 <= h && h < 1/6) {
+          r = c; g = x; b = 0;
+        }
+        else if (1/6 <= h && h < 1/3) {
+          r = x; g = c; b = 0;
+        } else if (1/3 <= h && h < 1/2) {
+          r = 0; g = c; b = x;
+        } else if (1/2 <= h && h < 2/3) {
+          r = 0; g = x; b = c;
+        } else if (2/3 <= h && h < 5/6) {
+          r = x; g = 0; b = c;
+        } else if (5/6 <= h && h < 1) {
+          r = c; g = 0; b = x;
+        }
+        r = Math.round((r + m) * 255);
+        g = Math.round((g + m) * 255);
+        b = Math.round((b + m) * 255);
+
+        return new Color(r, g, b, a);
       }
       function Gradient(v) {
         this.colors=[];
@@ -473,12 +1261,12 @@
           return this.colors[this.colors.length-1].copy();
         }
       }
-      var colors={
-        mist: new Color(110, 130, 210),
-        sky: new Color(50, 150, 210),
-        darkBrown: new Color(40, 17, 2),
-        lightBrown: new Color(200, 160, 60),
-        sand: new Color(200, 170, 120),
+      var colors={//list of all predefined colors
+        // mist: new Color(110, 130, 210),
+        // sky: new Color(50, 150, 210),
+        // darkBrown: new Color(40, 17, 2),
+        // lightBrown: new Color(200, 160, 60),
+        // sand: new Color(200, 170, 120),
 
         white: new Color(255, 255, 255),
         black: new Color(0, 0, 0),
@@ -495,12 +1283,12 @@
         darkYellow: new Color(127, 127, 0),
         darkMagenta: new Color(127, 0, 127),
         darkCyan: new Color(0, 127, 127),
-        veryDarkRed: new Color(63, 0, 0),
-        veryDarkGreen: new Color(0, 63, 0),
-        veryDarkBlue: new Color(0, 0, 63),
-        veryDarkYellow: new Color(63, 63, 0),
-        veryDarkMagenta: new Color(63, 0, 63),
-        veryDarkCyan: new Color(0, 63, 63),
+        // veryDarkRed: new Color(63, 0, 0),
+        // veryDarkGreen: new Color(0, 63, 0),
+        // veryDarkBlue: new Color(0, 0, 63),
+        // veryDarkYellow: new Color(63, 63, 0),
+        // veryDarkMagenta: new Color(63, 0, 63),
+        // veryDarkCyan: new Color(0, 63, 63),
 
         orange: new Color(255, 127, 0),
         gray: new Color(127, 127, 127),
@@ -509,7 +1297,7 @@
         slate: new Color(50, 67, 127)
         // brown: new Color(64, 32, 0)
       }
-      var gradients={
+      var gradients={// TODO: not really used much
         leafy: new Gradient([colors.veryDarkGreen, 0, colors.green, 0.5, colors.yellow, 1]),
         rainbow: new Gradient([colors.black, 0, colors.red, 0.1, colors.yellow, 0.26, colors.green, 0.42, colors.cyan, 0.58, colors.blue, 0.74, colors.magenta, 0.9, colors.white, 1]),
         natural: new Gradient([colors.black, 0, colors.green, 0.6, colors.yellow, 0.8, colors.white, 0.9, colors.red, 1]),
@@ -520,7 +1308,8 @@
         blendingTest: new Gradient([colors.green, 0, colors.red, 1])
       }
       var useGradient=gradients.tech;
-      var BGColor=new Color(10, 15, 30);
+      
+      // var BGColor=new Color(10, 15, 30);
       var takeColors=[[255,255,0],
         [213, 94, 0],
         [0, 114, 178],
@@ -555,8 +1344,16 @@
       //     face: "rgba(0, 7, 165, 30%)"
       //   }
       // ]
-    }
-
+      
+      var drawColors=[];
+      for (const col in colors) {//initialize drawColors with all predefined colors
+        drawColors.push(colors[col]);
+      }
+      for (var i = 0; i < drawColors.length; i++) {//add color select elements
+        document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectFillColor(new Color("+drawColors[i].r+", "+drawColors[i].g+", "+drawColors[i].b+"))'> </div>";// TODO: use "...drawColors["+i+"]..." instead of .r, .g and .b
+      }
+    
+    
     function Vec2(x=0, y=0) {
       this.x=x;
       this.y=y;
@@ -609,9 +1406,13 @@
       this.screen=function() {//coordinates for drawing
         // return new Vec2(this.x-0.5*this.y, this.y*HALFROOT3);
         return new Vec2(this.x*height/2+canvas.width/2, height/2-this.y*height/2);// TODO: not quite to screen height, also optimize?
+        // return new Vec2(0.5*(this.x*canvas.height+canvas.width), ((this.y+1)*0.5)*canvas.height);// TODO: is this one better?
       }
       this.unscreen=function() {//coordinates for mouse interaction
         return new Vec2((this.x-canvas.width/2)*2/height, (height/2-this.y)*2/height);// TODO:
+      }
+      this.rotate=function(a) {
+        return new Vec2(this.x*Math.cos(a)-this.y*Math.sin(a), this.x*Math.sin(a)+this.y*Math.cos(a));
       }
     }
     // function Vec3(x=0, y=0, z=0) {
@@ -693,6 +1494,47 @@
     //   }
     //   return getWeightedSquareAverage(reli, relj, getCurrentDot(0, 0), getCurrentDot(1, 0), getCurrentDot(0, 1), getCurrentDot(1, 1))*0.8591+0.5;
     // }
+    function Affine2(iHatX=1, iHatY=0, jHatX=0, jHatY=1, shiftX=0, shiftY=0) {//class for a 2D affine transformation
+      this.iHatX=iHatX;
+      this.iHatY=iHatY;
+      this.jHatX=jHatX;
+      this.jHatY=jHatY;
+      this.shiftX=shiftX;
+      this.shiftY=shiftY;
+      this.getCopy=function() {
+        return new Affine2(iHatX, iHatY, jHatX, jHatY, shiftX, shiftY);
+      }
+      this.getIHat=function(){return new Vec2(this.iHatX, this.iHatY);};
+      this.getJHat=function(){return new Vec2(this.jHatX, this.jHatY);};
+      this.getShift=function(){return new Vec2(this.shiftX, this.shiftY);};
+      this.applyTo=function(v) {
+        return new Vec2(v.x*this.iHatX+v.y*this.jHatX+this.shiftX, v.x*this.iHatY+v.y*this.jHatY+this.shiftY);
+      }
+      this.scaleShiftBy=function(s) {//multiply the shifting vector by s
+        let copy=this.getCopy();
+        copy.shiftX*=s;
+        copy.shiftY*=s;
+        return copy;
+      }
+      this.scaleTransformBy=function(s) {//multiply the linear transformation matrix by s
+        let copy=this.getCopy();
+        copy.iHatX*=s;
+        copy.iHatY*=s;
+        copy.jHatX*=s;
+        copy.jHatY*=s;
+        return copy;
+      }
+    }
+    function Affine2FromShift(v) {
+      return new Affine2(1, 0, 0, 1, v.x, v.y);
+    }
+    function Affine2FromAngle(a) {
+      return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), 0, 0);
+    }
+    function Affine2FromAngleAndShift(a, v) {
+      return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), v.x, v.y);
+    }
+    
     function Polygon () {// TODO: classes with push, not weird index saving
       this.numNext=0;
       this.next=[];
@@ -753,12 +1595,12 @@
       this.draw=function() {
         let screenPos=this.drawPos.screen();
 
-        // context.beginPath();//clear circle (may cause pixel-wide dark areas)
+        // context.beginPath();//clear circle (may cause pixel-wide dark areas around circles)
         //   context.arc(screenPos.x, screenPos.y, this.radius*height/2, 0, TAU);
         //   context.fillStyle=BGColor.rgb();
         //   context.fill();
 
-        if (this.takenByNumber!=0) {
+        if (this.takenByNumber!=0) {// TODO: repetetive
           context.beginPath();
           // context.arc(screenPos.x, screenPos.y, 0.85*this.radius*height/2, 0, TAU);
           context.arc(screenPos.x, screenPos.y, this.radius*height/2+0.5, 0, TAU);
@@ -773,6 +1615,28 @@
         }
       }
     };
+    
+    function smootherStep(x) {
+      return x * x * x * (x * (x * 6 - 15) + 10);
+    }
+    function getSmoothWeightedAverage(x, v1=0, v2=1) {//lerp, but with smootherstep
+      return x * x * x * (x * (x * 6 - 15) + 10)*(v2-v1)+v1;
+    }
+    function getWeightedSquareAverage(x, y, v1, v2, v3, v4) {//smooth interpolation
+      return getSmoothWeightedAverage(y, getSmoothWeightedAverage(x, v1, v2), getSmoothWeightedAverage(x, v3, v4));
+    }
+    function getNoise(i, j, seed=0) {//perlin noise
+      var fi=Math.floor(i);
+      var fj=Math.floor(j);
+      var reli=i-fi;
+      var relj=j-fj;
+      function getCurrentDot(iOff, jOff) {
+        var ang=((fi+iOff)*2+((fj+jOff+seed)*(seed+1))**2)**2;
+        // var ang=((fi+iOff)+(fj+jOff)*2)**2;
+        return Math.cos(ang)*(reli-iOff)+Math.sin(ang)*(relj-jOff);
+      }
+      return getWeightedSquareAverage(reli, relj, getCurrentDot(0, 0), getCurrentDot(1, 0), getCurrentDot(0, 1), getCurrentDot(1, 1))*0.8591+0.5;
+    }
 
     function drawSquare(pos, w=4) {
       pos=pos.screen();
@@ -786,6 +1650,14 @@
       context.moveTo(p1.x, p1.y);
       context.lineTo(p2.x, p2.y);
       context.stroke();
+    }
+    function drawDisk(x, y, r=4, ctx=context) {
+      ctx.beginPath();
+      // ctx.moveTo(0.5*(x*canvas.height+canvas.width), ((y+1)*0.5)*canvas.height);
+      // ctx.arc(0.5*(x*canvas.height+canvas.width), ((y+1)*0.5)*canvas.height, r/2+0.5, 0, TAU);
+      ctx.moveTo(0.5*(x*canvas.height+canvas.width), ((1-y)*0.5)*canvas.height);
+      ctx.arc(0.5*(x*canvas.height+canvas.width), ((1-y)*0.5)*canvas.height, r/2+0.5, 0, TAU);
+      ctx.fill();
     }
 
     function pathPoincareEdge(v1, v2) {
@@ -884,8 +1756,413 @@
     function updateCurPlayerMarkerColor() {
       document.getElementById("curPlayerMarker").style.color=takeColors[curPlayer].vertex;
     }
+    
+    
+    
+    var BGColor=new Color(0, 0, 0);
+    var fillColor=new Color(255, 255, 255);
+    var fillColorWithErase=fillColor;//temporary color (same as fillColor except when erasing, then it's the background color)
+    var drawSize=1;// TODO: relative to unit, otherwise scaling messes up filled regions
 
-    function draw() {
+    var tilingTransforms=[];
+    var inTileTransforms=[];// TODO: full affine transformation array instead?
+    var mirrorM; // m of the mirror line y=mx
+    autoGenerateButtonClickability();
+    clearAll();
+    changeTilingType();
+
+    setDrawingToCurDSF();
+    changeMirrorAngle();
+    
+    function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
+      inTileTransforms=[];
+      let s=tileOrder;
+      for (var i = 0; i < s; i++) {
+        var ang=i*TAU/s;
+        inTileTransforms.push([Math.cos(ang), Math.sin(ang), -Math.sin(ang), Math.cos(ang)]);
+      }
+      if (useMirrors) {
+        let mirrorMult=1/(1+mirrorM**2);
+        let mirrorMatrix=[
+          mirrorMult*(1-mirrorM**2),
+          mirrorMult*(mirrorM*2),
+          mirrorMult*(mirrorM*2),
+          mirrorMult*(mirrorM**2-1)
+        ]
+        for (var i = 0; i < s; i++) {
+          inTileTransforms.push([
+            inTileTransforms[i][0]*mirrorMatrix[0]+inTileTransforms[i][1]*mirrorMatrix[2],
+            inTileTransforms[i][0]*mirrorMatrix[1]+inTileTransforms[i][1]*mirrorMatrix[3],
+            inTileTransforms[i][2]*mirrorMatrix[0]+inTileTransforms[i][3]*mirrorMatrix[2],
+            inTileTransforms[i][2]*mirrorMatrix[1]+inTileTransforms[i][3]*mirrorMatrix[3]
+          ]);
+        }
+      }
+    }
+    function changeMirrorAngle(slope) {
+      console.log(slope, typeof(slope));
+      if (typeof(slope)=="undefined") {
+        // console.log("a");// TODO: on program start "a" gets called twice, then "b" gets called
+        mirrorM=mirrorAngleInputOptionsArr[curMirrorAngleInput][1](document.getElementById("mirror-angle-number-input-"+curMirrorAngleInput).value);
+      }
+      else {
+        // console.log("b");
+        mirrorM=slope;
+      }
+
+      // TODO: other tileOrder
+      if (tileOrder==6) {//make mirrorM between 0 and ROOT3/6 (angle between 0 and 30deg)
+        // TODO: fairly untested
+        for (var i = 0; i < 2 && mirrorM>=1/ROOT3; i++) {
+          mirrorM=(mirrorM-1/ROOT3)/(1+mirrorM/ROOT3);
+        }
+        for (var i = 0; i < 3 && mirrorM<0; i++) {
+          mirrorM=(mirrorM+1/ROOT3)/(1-mirrorM/ROOT3);
+        }
+
+        // mirrorM=Math.abs(mirrorM);
+        // if (mirrorM<0) {
+        //   console.log("mirrorM<0");
+        //   console.log(mirrorM);
+        //   mirrorM=(mirrorM+ROOT3)/(1-mirrorM*ROOT3);
+        //   console.log(mirrorM);
+        // }
+        // if (mirrorM<0) {
+        //   mirrorM=(mirrorM+ROOT3)/(1-mirrorM*ROOT3);
+        // }
+        // if (mirrorM>ROOT3) {
+        //   // console.log(mirrorM, Math.tan(Math.atan(mirrorM)-TAU/6));// TODO: not working
+        //   // mirrorM=(mirrorM-ROOT3/2)/(1+mirrorM*ROOT3/2);
+        //   mirrorM=1/ROOT3-4/(3*mirrorM+ROOT3);
+        //   // mirrorM=Math.tan(Math.atan(mirrorM)-TAU/6);
+        // }
+        // else if (mirrorM>1/ROOT3) {
+        //   // console.log(mirrorM, Math.tan(Math.atan(mirrorM)-TAU/6));// TODO: not working
+        //   // mirrorM=(mirrorM-ROOT3/2)/(1+mirrorM*ROOT3/2);
+        //   // mirrorM=4/(3*mirrorM+ROOT3)-1/ROOT3;
+        //   mirrorM=(ROOT3-mirrorM)/(1+ROOT3*mirrorM);
+        //   // mirrorM=Math.tan(Math.atan(mirrorM)-TAU/6);
+        // }
+        // console.log(mirrorM);
+      }
+      setInTileTransforms();
+      clearAll();
+    }
+    function changeTileOrder() {
+      tileOrder=parseInt(tileOrderInput.value);
+      autoGenerateButtonClickability();
+      setInTileTransforms();
+      clearAll();
+    }
+    
+    // TODO: dynamically set as many as are needed with the current canvas size
+    // TODO: scaling based on selected tiling
+    function setTilingTransforms() {
+      switch (tilingTypeName) {
+        case "square":
+          tilingTransforms=[
+            new Vec2(0, 0),
+
+            new Vec2(-2, -1),
+            new Vec2(-2, 0),
+            new Vec2(-2, 1),
+
+            new Vec2(-1, -1),
+            new Vec2(-1, 0),
+            new Vec2(-1, 1),
+            
+            new Vec2(0, -1),
+
+            new Vec2(0, 1),
+            
+            //not so necessary
+            new Vec2(1, -1),
+            new Vec2(1, 0),
+            new Vec2(1, 1),
+            
+            new Vec2(2, -1),
+            new Vec2(2, 0),
+            new Vec2(2, 1)
+          ].map(x => Affine2FromShift(x));
+          break;
+        case "hex":
+          // tilingTransforms=[
+          //   new Vec2(0, 0),
+          //
+          //   new Vec2(-1, 0),
+          //   new Vec2(-0.5, ROOT3/2),
+          //   new Vec2(-0.5, -ROOT3/2),
+          //
+          //   new Vec2(1, 0),
+          //   new Vec2(0.5, ROOT3/2),
+          //   new Vec2(0.5, -ROOT3/2),
+          //
+          //   //not so necessary
+          //   new Vec2(-2, 0),
+          //   new Vec2(-1.5, ROOT3/2),
+          //   new Vec2(-1.5, -ROOT3/2),
+          //
+          //   new Vec2(2, 0),
+          //   new Vec2(1.5, ROOT3/2),
+          //   new Vec2(1.5, -ROOT3/2)
+          //
+          //   // new Vec2(1, 0),
+          //   // new Vec2(0.5, ROOT3/2),
+          //   // new Vec2(-0.5, ROOT3/2),
+          //   //
+          //   // new Vec2(-1, 0),
+          //   // new Vec2(-0.5, -ROOT3/2),
+          //   // new Vec2(0.5, -ROOT3/2)
+          // ].map(x => Affine2FromShift(x.mult(ROOT3)));// TODO: probably doesn't work
+          tilingTransforms=[
+            new Vec2(0, 0),
+
+            new Vec2(-1, 0),
+            new Vec2(-0.5, ROOT3/2),
+            new Vec2(-0.5, -ROOT3/2),
+            
+            new Vec2(1, 0),
+            new Vec2(0.5, ROOT3/2),
+            new Vec2(0.5, -ROOT3/2),
+            
+            //not so necessary
+            new Vec2(2, 0),
+            new Vec2(-2, 0),
+            
+            // new Vec2(0, ROOT3),
+            // new Vec2(-1, ROOT3),
+            // new Vec2(1, ROOT3),
+            //
+            // new Vec2(0, -ROOT3),
+            // new Vec2(-1, -ROOT3),
+            // new Vec2(1, -ROOT3),
+            
+            new Vec2(-1.5, ROOT3/2),
+            new Vec2(-1.5, -ROOT3/2),
+            
+            new Vec2(1.5, ROOT3/2),
+            new Vec2(1.5, -ROOT3/2)
+          ].map(x => Affine2FromShift(x.mult(ROOT3)));
+          break;
+        case "tri":
+          tilingTransforms=[
+            [0, new Vec2(0, 0)],
+
+            [TAU/6, new Vec2(1, 0)],
+            [0, new Vec2(1.5, -ROOT3/2)],
+            [0, new Vec2(1.5, ROOT3/2)],
+
+            [TAU/6, new Vec2(-0.5, ROOT3/2)],
+            [0, new Vec2(0, ROOT3)],
+            [0, new Vec2(-1.5, ROOT3/2)],
+
+            [TAU/6, new Vec2(-0.5, -ROOT3/2)],
+            [0, new Vec2(-1.5, -ROOT3/2)],
+            [0, new Vec2(0, -ROOT3)],
+            
+            [TAU/6, new Vec2(-2, 0)],
+            
+            [TAU/6, new Vec2(1, ROOT3)],
+            [TAU/6, new Vec2(1, -ROOT3)]
+          ].map(x => Affine2FromAngleAndShift(x[0], x[1].mult(1/ROOT3)));
+          // ].map(x => Affine2FromAngleAndShift(x[0], x[1]));
+          break;
+        case "none":
+          tilingTransforms=[new Affine2()];
+          break;
+        default:
+          alert("this shouldn't have happened! (invalid tiling type)");
+      }
+      autoGenerateButtonClickability();
+    }
+    function changeTilingType() {
+      const rbs=document.querySelectorAll('input[name="tiling-type"]');// TODO: refactor
+      for (const rb of rbs) {
+        if (rb.checked) {
+          tilingTypeName=rb.value;
+          tilingTypeIndex=rb.id.slice(12);// TODO: kinda janky
+          break;
+        }
+      }
+      setTilingTransforms();
+      clearAll();
+    }
+
+    function generateValidTilingVertArr(ctx=context) {
+      // if (!initialDrawingReady || tileOrder!=6 || tilingTypeName!="hex") {
+      if (!canAutoGenerateGeometrically()) {
+        return 0;
+      }
+      // let transf=inTileTransforms;
+      let transf=[
+        inTileTransforms[9],
+        inTileTransforms[10]
+      ]
+      // transf[3]=new Vec2();
+      var pos=new Vec2(1/2, ROOT3/6);
+      // drawPointAtPosition(pos);
+      var curFlakeVertArr=[pos];
+      var curFlakeMinimalVertArr=[pos];
+      for (var ii = 0; ii < 2000; ii++) {
+        var bestDist=Infinity;
+        var bestPoint=new Vec2();
+        drawPointAtPosition(pos);
+        var tPoints=[];
+        var tPointTransforms=[];
+        for (var i = 0; i < transf.length; i++) {
+          // console.log("%c"+i, "font-size:20px", transf[i]);
+          var t=transf[i];
+          tPoints.push(new Vec2(t[0]*pos.x+t[1]*pos.y, t[2]*pos.x+t[3]*pos.y));
+          tPointTransforms.push(tPoints[i].add(new Vec2(1, 0)));
+          // console.log("tPoints[i]", tPoints[i]);
+          // var tPoints[i]=tPoints[i].add(new Vec2(tilingTransforms[1].x, tilingTransforms[1].y));
+        }
+        // TODO: This uses a loop over transf and a loop over tPoints, which could (and later should) be put into one loop, but it's currently like this for understandability/debugging purposes.
+        for (var i = 0; i < tPoints.length; i++) {
+          let isCopyOfACentralVertex=false;
+          for (var vertIndex = 0; vertIndex < curFlakeVertArr.length; vertIndex++) {
+            if (curFlakeVertArr[vertIndex].sqDist(tPoints[i])<0.000000001) {// TODO: use an epsilon
+              isCopyOfACentralVertex=true;
+              // console.log("%cCopy info:", "color:#f90; font-size:15px", curFlakeVertArr[vertIndex], tPoints[i]);
+              break;
+            }
+          }
+          if (!isCopyOfACentralVertex) {
+            curFlakeVertArr.push(tPoints[i]);// TODO: only if not a copy
+            // console.log("isCopy", isCopyOfACentralVertex);
+
+            // // context.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).lighten(0.2).rgb();
+            // // ctx.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).rgb();
+            // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.mult(0.6).rgb();
+            // // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : colorLerp(fillColorWithErase, ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1), 0.3).rgb();// TODO: tilingTransforms no longer working
+            // // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.multColor(ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1)).rgb();
+            // // ctx.fillStyle=fillColorWithErase.rgb();
+            // // var offPoint=tPoints[i];
+            // var offsetDist=1;
+            // var offPoint=tPoints[i].add(new Vec2(offsetDist*tilingTransforms[sh].x, offsetDist*tilingTransforms[sh].y));
+            //
+            // // drawSquare(offPoint.x, offPoint.y, drawSize);
+            // drawDisk(offPoint.x, offPoint.y, drawSize, ctx);
+
+            if (tPointTransforms[i].len()<bestDist) {
+              bestPoint=tPointTransforms[i];
+              bestDist=tPointTransforms[i].len();
+            }
+          }
+        }
+
+        if (bestPoint.len()<0.000001) {// TODO: epsilon
+          // console.log("Non-copying point not found (or some other problem)");
+          break;
+        }
+        pos=bestPoint;
+        curFlakeMinimalVertArr.push(bestPoint.copy());
+      }
+      // console.log(curFlakeVertArr);
+      // console.log(curFlakeMinimalVertArr);
+      // console.log(curFlakeMinimalVertArr.length);
+      // console.log("%c..............................................................................................................", "background:#fff");
+    }
+
+    function drawPointAtPosition(pos, ctx=context) {
+      // context.fillStyle="rgb(200, 200, 220)";
+      // context.fillStyle="hsla("+lerp(getNoise(colorChangeSteps*colorChangeSpeed, 0.1, 1.5924), 100, 300)+", 80%, 70%, 0.3)";
+      // context.fillStyle=fillColor;
+      for (var i = 0; i < inTileTransforms.length; i++) {
+        var t=inTileTransforms[i];
+        var tPoint=new Vec2(t[0]*pos.x+t[1]*pos.y, t[2]*pos.x+t[3]*pos.y);
+        // for (var sX = -1; sX < 2; sX++) {
+        //   for (var sY = -1; sY < 2; sY++) {
+        //     // context.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).lighten(0.2).rgb();
+        //     // ctx.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).rgb();
+        //     ctx.fillStyle= (sX==0 && sY==0) ? fillColorWithErase.rgb() : fillColorWithErase.mult(0.6).rgb();
+        //     // ctx.fillStyle=fillColorWithErase.rgb();
+        //     // var offPoint=tPoint;
+        //     var offsetDist=1;
+        //     var offPoint=tPoint.add(new Vec2(offsetDist*(sX+sY/2), offsetDist*sY*ROOT3/2));
+        //
+        //     // drawSquare(offPoint.x, offPoint.y, drawSize);
+        //     drawDisk(offPoint.x, offPoint.y, drawSize, ctx);
+        //   }
+        // }
+        for (var sh = 0; sh < tilingTransforms.length; sh++) {
+          // context.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).lighten(0.2).rgb();
+          // ctx.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).rgb();
+          ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.mult(0.6).rgb();
+          // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : colorLerp(fillColorWithErase, ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1), 0.3).rgb();
+          // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.multColor(ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1)).rgb();
+          // ctx.fillStyle=fillColorWithErase.rgb();
+          // var offPoint=tPoint;
+          // var offPoint=tPoint.add(new Vec2(offsetDist*tilingTransforms[sh].x, offsetDist*tilingTransforms[sh].y));
+          var offPoint=tilingTransforms[sh].scaleShiftBy(globalScaling).applyTo(tPoint);
+
+          // if (sh==0) {
+          //   drawSize+=2;
+          // }
+          // drawSquare(offPoint.x, offPoint.y, drawSize);
+          drawDisk(offPoint.x, offPoint.y, drawSize, ctx);
+          // if (sh==0) {
+          //   drawSize-=2;
+          // }
+        }
+      }
+    }
+    function drawAllPoints() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      drawFromCurDSF();// TODO: there's probably a better place to put this
+      let lastPosNum=0;
+      let savedColor=fillColorWithErase;// TODO: everything here is bad
+      let savedSize=drawSize;
+      for (var i = 0; i <= curMovement; i++) {
+        let posNum=movements[i];
+        fillColorWithErase=movementColors[i];
+        drawSize=movementSizes[i];
+        for (var j = lastPosNum; j < posNum; j++) {
+          drawPointAtPosition(mousePositions[j]);
+        }
+        lastPosNum=posNum;
+      }
+      fillColorWithErase=savedColor;
+      drawSize=savedSize;
+    }
+
+    function drawFromCurDSF() {
+      // TODO:
+      curDSF.drawToWholeScreen();
+      // generateDSFGrid();
+    }
+    
+    function update() {
+      if (!paused) {
+        if (fReqs>=frameSkip) {
+          changingContext.clearRect(0, 0, canvas.width, canvas.height);
+          if (mouseDown) {
+            // fReqs-=frameSkip; // TODO: why was this here?
+            fReqs=0;
+            // console.log(fReqs);
+            // for (var i = 0; i < 20; i++) {
+            //   if (true) {//do calculations
+            //     curPoint=curPoint.add(new Vec2(rand0(maxStep), rand0(maxStep))).mult(distFactor);
+            //   }
+            //   draw();// TODO: this commented block could be fixed, but is it useful?
+            //   colorChangeSteps++;
+            // }
+            var curPoint=new Vec2((mousePos.x*2-canvas.width)/canvas.height, 1-mousePos.y*2/canvas.height);
+            mousePositions.push(curPoint);
+            drawPointAtPosition(curPoint);
+            colorChangeSteps++;
+          }
+          else {
+            var curPoint=new Vec2((mousePos.x*2-canvas.width)/canvas.height, 1-mousePos.y*2/canvas.height);
+            drawPointAtPosition(curPoint, changingContext);
+          }
+        }
+        fReqs++;
+        window.requestAnimationFrame(update);
+      }
+    }
+
+    function drawHyperbolicGrid() {
       context.fillStyle=BGColor.rgb();
       context.fillRect(0, 0, canvas.width, canvas.height);
       if (!isEuclidean) {//draw boundary circle
@@ -909,11 +2186,11 @@
       }
       drawAllVerts();
     }
-    // function update() {
+    // function update() {// TODO: do i need this (from hyp)
     //   if (!paused) {
     //     if (fReqs>=frameSkip) {
     //       fReqs-=frameSkip;
-    //       draw();
+    //       drawHyperbolicGrid();
     //     }
     //     fReqs++;
     //     // window.requestAnimationFrame(update);
@@ -1325,397 +2602,460 @@
       document.getElementById("scoreContainer").innerHTML=scoreHTML;
       lastClickTookPolygon=false;
 
-      draw();
+      drawHyperbolicGrid();
+    }
+    function clearAll() {
+      context.clearRect(0, 0, canvas.width, canvas.height);
+      if (initialDrawingReady) drawFromCurDSF();// TODO: probably a better place for this
+      mousePositions=[];
+      movements=[];
+      movementColors=[];
+      movementSizes=[];
+      curMovement=-1;
+      // generateValidTilingVertArr();
+    }
+    function resizeWithWait() {
+      if (framesSinceResize<minFramesSinceResize) {
+        framesSinceResize++;
+        window.requestAnimationFrame(resizeWithWait);
+      }
+      else {
+        if (resizeRequested) {
+          resize();
+          resizeRequested=false;
+        }
+        framesSinceResize=0;
+      }
     }
     function resize() {
-      canvas.width=window.innerWidth;
-      height=canvas.height=window.innerHeight;
-      context.lineJoin="round";
+      canvas.width=changingCanvas.width=window.innerWidth;
+      height=canvas.height=changingCanvas.height=window.innerHeight;
+      context.lineJoin="round";// TODO: probably not needed
       context.lineCap="round";
-      draw();
+      drawHyperbolicGrid();
+      drawAllPoints();
     }
-    resize();
+    initialDrawingReady=true;
+    autoGenerateButtonClickability();
+    resizeWithWait();
     restart();
-    // update();
-    // draw();
+    update();
+    // drawHyperbolicGrid();
 
-    // canvas.addEventListener("mousemove",function(){
-    //   // lastx=event.clientX;
-    //   // lasty=event.clientY;
-    //   var n=1;
-    //   lastx=(event.clientX+lastx*n)/(n+1);
-    //   lasty=(event.clientY+lasty*n)/(n+1);
-    // });
-    // window.addEventListener("dblclick",function(){location.reload();});
-    // window.addEventListener("click",function(){
-    //   draw();
-    // });
-    canvas.addEventListener("click",function(){
-      let mouseCoords=new Vec2(event.clientX, event.clientY).unscreen();
-      let v1;
-      var v1Index=0;
-      let vertSelectSuccess=false;
-      for (; v1Index < numVerts; v1Index++) {
-        v1=V[v1Index];
-        if (v1.drawPos.sub(mouseCoords).len()<v1.radius && v1.takenByNumber==0) {
-          v1.takenByNumber=curPlayer;
-          v1.draw();
-          vertSelectSuccess=true;
-          break;
-        }
+
+
+    function mouseUp(){
+      if (mouseDown) {
+        mouseDown=false;
+        movementColors.push(fillColorWithErase);
+        movementSizes.push(drawSize);
+        fillColorWithErase=fillColor;
+        movements.push(mousePositions.length);
       }
-      let prevNumTakenPolys=takenPolys[curPlayer].length;
-      if (vertSelectSuccess) {
-        if (lastClickTookPolygon) {
-          draw();
-        }
-        if (isEuclidean) {
-          for (var v2Index = 0; v2Index < numVerts; v2Index++) {
-            let v2=V[v2Index];
-            if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
+    }
+    function selectFillColor(c) {
+      fillColor=fillColorWithErase=c;
+    }
 
-            let edgeLen1=v1.pos.dist(v2.pos);
-
-            // context.fillStyle="orange";
-            // drawSquare(endpointU);
-            // drawSquare(endpointV);
-
-            for (var v3Index = 0; v3Index < numVerts; v3Index++) {
-              let v3=V[v3Index];
-
-              /* reasons v3 might be invalid */
-              if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
-              let edgeLen2=v2.pos.dist(v3.pos); //skip v3 because its distance to v2 is different than v2 to v1
-                if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
-              let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
-                let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
-                if (polygonOrientation<=0) {
-                  // console.log("widdershins poly!");
-                  continue;
-                }
-
-              let firstDiagonalLen=v1.pos.dist(v3.pos);
-              let firstAngle=Math.acos((edgeLen1**2+edgeLen2**2-firstDiagonalLen**2)/(2*edgeLen1*edgeLen2));
-              // console.log(firstDiagonalLen);
-
-              // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
-
-              let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
-
-              while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
-                let w1Index=wVerts[wVerts.length-2];
-                let w2Index=wVerts[wVerts.length-1];
-                let w1=V[w1Index];
-                let w2=V[w2Index];
-                let w3Found=false;
-                var w3Index=0;
-                let curEndpoint1, curEndpoint2;
-                for (; w3Index < numVerts; w3Index++) {
-                  let w3=V[w3Index];
-
-                  /* reasons w3 might be invalid */
-                  if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
-                  let edgeLen3=w2.pos.dist(w3.pos); //skip w3 because its distance to w2 is different than edgeLen1
-                    if (Math.abs(edgeLen1-edgeLen3)>0.001) {
-                      // console.log("a");
-                      continue;
-                    }
-                  let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
-                    let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
-                    if (curOrientation<=0) {
-                      // console.log("widdershins poly!");
-                      continue;
-                    }
-                  let newDiagonalLen=w1.pos.dist(w3.pos);//skip w3 because it makes a diagonal with a new length
-                    if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
-                      // console.log("diagonal new");
-                      continue;
-                    }
-
-                  let curAngle=Math.acos((2*edgeLen1**2-newDiagonalLen**2)/(2*edgeLen1**2));
-
-                  if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
-                    // console.log("a");
-                    continue;
-                  }
-
-                  w3Found=true;
-                  break;
-                }
-
-                if (w3Found) {//new taken vertex in streak
-                  if (wVerts.length>50) console.error("Infinite loop (probably)");
-
-                  if (w3Index==v1Index) {//successful loop back to start, polygon done
-                    if (true) {//check that the polygon isn't a star
-                      let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
-                      let isStar=false;
-                      for (var i = 2; i < wVerts.length; i++) {
-                        let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
-                        // console.log(curOrientation);
-                        if (curOrientation>=0) {
-                          isStar=true;
-                          break;
-                        }
-                      }
-                      if (isStar) {
-                        break;
-                      }
-                    }
-
-                    // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
-                    takenPolys[curPlayer].push(wVerts);
-                    // drawTakenPoly(wVerts, 1);
-
-                    break;
-                  }
-                  else {//polygon not yet done, continue through the streak
-                    wVerts.push(w3Index);
-                    lastEndpoint1=curEndpoint1;
-                    lastEndpoint2=curEndpoint2;
-                    // console.log("&&& Keep going!");
-                    // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
-                  }
-                }
-                else {//streak of taken vertices ended, polygon is incomplete
-                  // console.log("&&& Streak ended!");
-                  break;
-                }
-
-                // break;
-              }
-
-
-              // TODO: exceptions...?
-              // if (prevC.len()>10000) {
-              //   // for (var j=2; j<schlafliP; j++) {
-              //   //   let newV=P[i].verts[j];
-              //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
-              //   //
-              //   //   let s=V[v2].pos.sub(V[v1].pos);
-              //   //   let k=V[v1].pos.sub(normalI);
-              //   //
-              //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
-              //   //   // V[P[i].verts[j]].setPos(invertedI);
-              //   // }
-              //
-              //   console.log("bad!!!!!!!!!!!!!!!");
-              // }
-              // else {
-              //
-              // }
-            }
-          }
-        }
-        else {
-          for (var v2Index = 0; v2Index < numVerts; v2Index++) {
-            let v2=V[v2Index];
-            if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
-
-            let scaleM=(radius**2/v1.pos.sqLen() + 1)/2; //calculate endpoints and length of line v1 to v2
-              let scaleN=(radius**2/v2.pos.sqLen() + 1)/2;
-              let M=new Vec2(v1.pos.x*scaleM, v1.pos.y*scaleM);
-              let N=new Vec2(v2.pos.x*scaleN, v2.pos.y*scaleN);
-              let centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-
-              let C1=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-              let C1SqLen=C1.sqLen();
-              let tanD=radius*Math.sqrt((C1.x*radius)**2 + C1SqLen*(C1.y**2-radius**2));
-              let tanX1=(C1.x*radius**2+tanD)/C1SqLen;
-              let tanX2=(C1.x*radius**2-tanD)/C1SqLen;
-              let endpointU=new Vec2(tanX1, (radius**2-C1.x*tanX1)/C1.y);
-              let endpointV=new Vec2(tanX2, (radius**2-C1.x*tanX2)/C1.y);
-              // let newR=(C1.sub(v1.pos)).len();
-              let edgeLen1=Math.acosh(1+2*v1.pos.sub(v2.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v2.pos.sqLen()) ));
-
-            // context.fillStyle="orange";
-            // drawSquare(endpointU);
-            // drawSquare(endpointV);
-
-            for (var v3Index = 0; v3Index < numVerts; v3Index++) {
-              let v3=V[v3Index];
-
-              /* reasons v3 might be invalid */
-              if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
-              let edgeLen2=Math.acosh(1+2*v2.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v2.pos.sqLen())*(radius**2-v3.pos.sqLen()) )); //skip v3 because its distance to v2 is different than v2 to v1
-                if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
-              let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
-                let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
-                if (polygonOrientation<=0) {
-                  // console.log("widdershins poly!");
-                  continue;
-                }
-
-              scaleM=(radius**2/v2.pos.sqLen() + 1)/2;//calculate endpoints of line v2 to v3
-                scaleN=(radius**2/v3.pos.sqLen() + 1)/2;
-                M=new Vec2(v2.pos.x*scaleM, v2.pos.y*scaleM);
-                N=new Vec2(v3.pos.x*scaleN, v3.pos.y*scaleN);
-                centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-
-                let C2=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-                let C2SqLen=C2.sqLen();
-                tanD=radius*Math.sqrt((C2.x*radius)**2 + C2SqLen*(C2.y**2-radius**2));
-                tanX1=(C2.x*radius**2+tanD)/C2SqLen;
-                tanX2=(C2.x*radius**2-tanD)/C2SqLen;
-                let endpointS=new Vec2(tanX1, (radius**2-C2.x*tanX1)/C2.y);
-                let endpointT=new Vec2(tanX2, (radius**2-C2.x*tanX2)/C2.y);
-
-              let angleP=endpointU.sub(endpointV).dot(endpointS.sub(endpointT))+// TODO:NOTE:  this means radius has to be 1
-                endpointU.dot(endpointT)*endpointV.dot(endpointS)-
-                endpointU.dot(endpointS)*endpointV.dot(endpointT);
-                let angleQ=(1-endpointU.dot(endpointV))**2;
-                let angleR=(1-endpointS.dot(endpointT))**2;
-                let firstAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
-                let firstDiagonalLen=Math.acosh(1+2*v1.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v3.pos.sqLen()) ));
-                // console.log(firstDiagonalLen);
-
-              // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
-
-              let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
-              let lastEndpoint1=endpointS;
-              let lastEndpoint2=endpointT;
-
-              while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
-                let w1Index=wVerts[wVerts.length-2];
-                let w2Index=wVerts[wVerts.length-1];
-                let w1=V[w1Index];
-                let w2=V[w2Index];
-                let w3Found=false;
-                var w3Index=0;
-                let curEndpoint1, curEndpoint2;
-                for (; w3Index < numVerts; w3Index++) {
-                  let w3=V[w3Index];
-
-                  /* reasons w3 might be invalid */
-                  if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
-                  let edgeLen3=Math.acosh(1+2*w2.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w2.pos.sqLen())*(radius**2-w3.pos.sqLen()) )); //skip w3 because its distance to w2 is different than edgeLen1
-                    if (Math.abs(edgeLen1-edgeLen3)>0.001) {
-                      // console.log("a");
-                      continue;
-                    }
-                  let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
-                    let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
-                    if (curOrientation<=0) {
-                      // console.log("widdershins poly!");
-                      continue;
-                    }
-                  let newDiagonalLen=Math.acosh(1+2*w1.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w1.pos.sqLen())*(radius**2-w3.pos.sqLen()) ));//skip w3 because it makes a diagonal with a new length
-                    if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
-                      // console.log("diagonal new");
-                      continue;
-                    }
-
-                  scaleM=(radius**2/w2.pos.sqLen() + 1)/2;//calculate endpoints of line w2 to w3
-                    scaleN=(radius**2/w3.pos.sqLen() + 1)/2;
-                    M=new Vec2(w2.pos.x*scaleM, w2.pos.y*scaleM);
-                    N=new Vec2(w3.pos.x*scaleN, w3.pos.y*scaleN);
-                    centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-
-                    let C3=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-                    let C3SqLen=C3.sqLen();
-                    tanD=radius*Math.sqrt((C3.x*radius)**2 + C3SqLen*(C3.y**2-radius**2));
-                    tanX1=(C3.x*radius**2+tanD)/C3SqLen;
-                    tanX2=(C3.x*radius**2-tanD)/C3SqLen;
-                    curEndpoint1=new Vec2(tanX1, (radius**2-C3.x*tanX1)/C3.y);
-                    curEndpoint2=new Vec2(tanX2, (radius**2-C3.x*tanX2)/C3.y);
-
-                  angleP=lastEndpoint1.sub(lastEndpoint2).dot(curEndpoint1.sub(curEndpoint2))+ //calculate angle w1-w2-w3 // TODO:NOTE: this means radius has to be 1
-                    lastEndpoint1.dot(curEndpoint2)*lastEndpoint2.dot(curEndpoint1)-
-                    lastEndpoint1.dot(curEndpoint1)*lastEndpoint2.dot(curEndpoint2);
-                    angleQ=(1-lastEndpoint1.dot(lastEndpoint2))**2;
-                    angleR=(1-curEndpoint1.dot(curEndpoint2))**2;
-                    let curAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
-
-                  if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
-                    // console.log("a");
-                    continue;
-                  }
-
-                  w3Found=true;
-                  break;
-                }
-
-                if (w3Found) {//new taken vertex in streak
-                  if (wVerts.length>50) console.error("Infinite loop (probably)");
-
-                  if (w3Index==v1Index) {//successful loop back to start, polygon done
-                    if (true) {//check that the polygon isn't a star
-                      let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
-                      let isStar=false;
-                      for (var i = 2; i < wVerts.length; i++) {
-                        let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
-                        // console.log(curOrientation);
-                        if (curOrientation>=0) {
-                          isStar=true;
-                          break;
-                        }
-                      }
-                      if (isStar) {
-                        break;
-                      }
-                    }
-
-                    // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
-                    takenPolys[curPlayer].push(wVerts);
-                    // drawTakenPoly(wVerts, 1);
-
-                    break;
-                  }
-                  else {//polygon not yet done, continue through the streak
-                    wVerts.push(w3Index);
-                    lastEndpoint1=curEndpoint1;
-                    lastEndpoint2=curEndpoint2;
-                    // console.log("&&& Keep going!");
-                    // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
-                  }
-                }
-                else {//streak of taken vertices ended, polygon is incomplete
-                  // console.log("&&& Streak ended!");
-                  break;
-                }
-
-                // break;
-              }
-
-
-              // TODO: exceptions...
-              // if (prevC.len()>10000) {
-              //   // for (var j=2; j<schlafliP; j++) {
-              //   //   let newV=P[i].verts[j];
-              //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
-              //   //
-              //   //   let s=V[v2].pos.sub(V[v1].pos);
-              //   //   let k=V[v1].pos.sub(normalI);
-              //   //
-              //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
-              //   //   // V[P[i].verts[j]].setPos(invertedI);
-              //   // }
-              //
-              //   console.log("bad!!!!!!!!!!!!!!!");
-              // }
-              // else {
-              //
-              // }
-            }
-          }
-        }
-        let newNumTakenPolys=takenPolys[curPlayer].length;
-        if (newNumTakenPolys!=prevNumTakenPolys) {
-          for (var i=prevNumTakenPolys; i<newNumTakenPolys; i++) {
-            drawTakenPoly(takenPolys[curPlayer][i], curPlayer, true);
-          }
-          drawAllVerts();
-          document.getElementById("score-display"+curPlayer).innerHTML=takenPolys[curPlayer].length;
-          lastClickTookPolygon=true;
-        }
-        numTakenVerts++;
-        document.getElementById("numTakenVerts").innerHTML=numTakenVerts;
-        curPlayer=curPlayer+1; if (curPlayer>numPlayers) curPlayer-=numPlayers;//move to next player
-        updateCurPlayerMarkerColor();
-      }
-      // console.log("click done");
+    var mousePos=new Vec2();
+    var mouseDown=false;
+    window.addEventListener("mousemove", function() {
+      // if (!paused) {
+        // mousePos.x=event.clientX;
+        // mousePos.y=event.clientY;
+        mousePos=new Vec2(
+          (event.clientX+mousePos.x*mouseSlowingFactor)/(mouseSlowingFactor+1),
+          (event.clientY+mousePos.y*mouseSlowingFactor)/(mouseSlowingFactor+1)
+        );
+      // }
     });
-    window.addEventListener("keyup",function(){
+    changingCanvas.oncontextmenu = function() { return false; }//so that right clicking doesn't open a menu
+    changingCanvas.onmousedown = function() {
+      mouseDown=true;
+      if (event.buttons==1) {//RMB, draw
+        fillColorWithErase=fillColor;
+      }
+      else if (event.buttons==2) {//LMB, erase
+        fillColorWithErase=BGColor;
+      }
+      else {//multiple buttons or a weird button has been pressed, pretend the mouse was released
+        mouseUp();
+        return;
+      }
+      curMovement++;
+    }
+    changingCanvas.onmouseup = mouseUp;
+
+
+    // canvas.addEventListener("click",function(){
+    
+    // changingCanvas.addEventListener("click",function(){// TODO: something with this mess
+    //   let mouseCoords=new Vec2(event.clientX, event.clientY).unscreen();
+    //   let v1;
+    //   var v1Index=0;
+    //   let vertSelectSuccess=false;
+    //   for (; v1Index < numVerts; v1Index++) {
+    //     v1=V[v1Index];
+    //     if (v1.drawPos.sub(mouseCoords).len()<v1.radius && v1.takenByNumber==0) {
+    //       v1.takenByNumber=curPlayer;
+    //       v1.draw();
+    //       vertSelectSuccess=true;
+    //       break;
+    //     }
+    //   }
+    //   let prevNumTakenPolys=takenPolys[curPlayer].length;
+    //   if (vertSelectSuccess) {
+    //     if (lastClickTookPolygon) {
+    //       draw();
+    //     }
+    //     if (isEuclidean) {
+    //       for (var v2Index = 0; v2Index < numVerts; v2Index++) {
+    //         let v2=V[v2Index];
+    //         if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
+    //
+    //         let edgeLen1=v1.pos.dist(v2.pos);
+    //
+    //         // context.fillStyle="orange";
+    //         // drawSquare(endpointU);
+    //         // drawSquare(endpointV);
+    //
+    //         for (var v3Index = 0; v3Index < numVerts; v3Index++) {
+    //           let v3=V[v3Index];
+    //
+    //           /* reasons v3 might be invalid */
+    //           if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
+    //           let edgeLen2=v2.pos.dist(v3.pos); //skip v3 because its distance to v2 is different than v2 to v1
+    //             if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
+    //           let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
+    //             let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
+    //             if (polygonOrientation<=0) {
+    //               // console.log("widdershins poly!");
+    //               continue;
+    //             }
+    //
+    //           let firstDiagonalLen=v1.pos.dist(v3.pos);
+    //           let firstAngle=Math.acos((edgeLen1**2+edgeLen2**2-firstDiagonalLen**2)/(2*edgeLen1*edgeLen2));
+    //           // console.log(firstDiagonalLen);
+    //
+    //           // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
+    //
+    //           let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
+    //
+    //           while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
+    //             let w1Index=wVerts[wVerts.length-2];
+    //             let w2Index=wVerts[wVerts.length-1];
+    //             let w1=V[w1Index];
+    //             let w2=V[w2Index];
+    //             let w3Found=false;
+    //             var w3Index=0;
+    //             let curEndpoint1, curEndpoint2;
+    //             for (; w3Index < numVerts; w3Index++) {
+    //               let w3=V[w3Index];
+    //
+    //               /* reasons w3 might be invalid */
+    //               if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
+    //               let edgeLen3=w2.pos.dist(w3.pos); //skip w3 because its distance to w2 is different than edgeLen1
+    //                 if (Math.abs(edgeLen1-edgeLen3)>0.001) {
+    //                   // console.log("a");
+    //                   continue;
+    //                 }
+    //               let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
+    //                 let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
+    //                 if (curOrientation<=0) {
+    //                   // console.log("widdershins poly!");
+    //                   continue;
+    //                 }
+    //               let newDiagonalLen=w1.pos.dist(w3.pos);//skip w3 because it makes a diagonal with a new length
+    //                 if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
+    //                   // console.log("diagonal new");
+    //                   continue;
+    //                 }
+    //
+    //               let curAngle=Math.acos((2*edgeLen1**2-newDiagonalLen**2)/(2*edgeLen1**2));
+    //
+    //               if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
+    //                 // console.log("a");
+    //                 continue;
+    //               }
+    //
+    //               w3Found=true;
+    //               break;
+    //             }
+    //
+    //             if (w3Found) {//new taken vertex in streak
+    //               if (wVerts.length>50) console.error("Infinite loop (probably)");
+    //
+    //               if (w3Index==v1Index) {//successful loop back to start, polygon done
+    //                 if (true) {//check that the polygon isn't a star
+    //                   let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
+    //                   let isStar=false;
+    //                   for (var i = 2; i < wVerts.length; i++) {
+    //                     let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
+    //                     // console.log(curOrientation);
+    //                     if (curOrientation>=0) {
+    //                       isStar=true;
+    //                       break;
+    //                     }
+    //                   }
+    //                   if (isStar) {
+    //                     break;
+    //                   }
+    //                 }
+    //
+    //                 // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
+    //                 takenPolys[curPlayer].push(wVerts);
+    //                 // drawTakenPoly(wVerts, 1);
+    //
+    //                 break;
+    //               }
+    //               else {//polygon not yet done, continue through the streak
+    //                 wVerts.push(w3Index);
+    //                 lastEndpoint1=curEndpoint1;
+    //                 lastEndpoint2=curEndpoint2;
+    //                 // console.log("&&& Keep going!");
+    //                 // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
+    //               }
+    //             }
+    //             else {//streak of taken vertices ended, polygon is incomplete
+    //               // console.log("&&& Streak ended!");
+    //               break;
+    //             }
+    //
+    //             // break;
+    //           }
+    //
+    //
+    //           // TODO: exceptions...?
+    //           // if (prevC.len()>10000) {
+    //           //   // for (var j=2; j<schlafliP; j++) {
+    //           //   //   let newV=P[i].verts[j];
+    //           //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
+    //           //   //
+    //           //   //   let s=V[v2].pos.sub(V[v1].pos);
+    //           //   //   let k=V[v1].pos.sub(normalI);
+    //           //   //
+    //           //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
+    //           //   //   // V[P[i].verts[j]].setPos(invertedI);
+    //           //   // }
+    //           //
+    //           //   console.log("bad!!!!!!!!!!!!!!!");
+    //           // }
+    //           // else {
+    //           //
+    //           // }
+    //         }
+    //       }
+    //     }
+    //     else {
+    //       for (var v2Index = 0; v2Index < numVerts; v2Index++) {
+    //         let v2=V[v2Index];
+    //         if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
+    //
+    //         let scaleM=(radius**2/v1.pos.sqLen() + 1)/2; //calculate endpoints and length of line v1 to v2
+    //           let scaleN=(radius**2/v2.pos.sqLen() + 1)/2;
+    //           let M=new Vec2(v1.pos.x*scaleM, v1.pos.y*scaleM);
+    //           let N=new Vec2(v2.pos.x*scaleN, v2.pos.y*scaleN);
+    //           let centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
+    //
+    //           let C1=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
+    //           let C1SqLen=C1.sqLen();
+    //           let tanD=radius*Math.sqrt((C1.x*radius)**2 + C1SqLen*(C1.y**2-radius**2));
+    //           let tanX1=(C1.x*radius**2+tanD)/C1SqLen;
+    //           let tanX2=(C1.x*radius**2-tanD)/C1SqLen;
+    //           let endpointU=new Vec2(tanX1, (radius**2-C1.x*tanX1)/C1.y);
+    //           let endpointV=new Vec2(tanX2, (radius**2-C1.x*tanX2)/C1.y);
+    //           // let newR=(C1.sub(v1.pos)).len();
+    //           let edgeLen1=Math.acosh(1+2*v1.pos.sub(v2.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v2.pos.sqLen()) ));
+    //
+    //         // context.fillStyle="orange";
+    //         // drawSquare(endpointU);
+    //         // drawSquare(endpointV);
+    //
+    //         for (var v3Index = 0; v3Index < numVerts; v3Index++) {
+    //           let v3=V[v3Index];
+    //
+    //           /* reasons v3 might be invalid */
+    //           if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
+    //           let edgeLen2=Math.acosh(1+2*v2.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v2.pos.sqLen())*(radius**2-v3.pos.sqLen()) )); //skip v3 because its distance to v2 is different than v2 to v1
+    //             if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
+    //           let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
+    //             let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
+    //             if (polygonOrientation<=0) {
+    //               // console.log("widdershins poly!");
+    //               continue;
+    //             }
+    //
+    //           scaleM=(radius**2/v2.pos.sqLen() + 1)/2;//calculate endpoints of line v2 to v3
+    //             scaleN=(radius**2/v3.pos.sqLen() + 1)/2;
+    //             M=new Vec2(v2.pos.x*scaleM, v2.pos.y*scaleM);
+    //             N=new Vec2(v3.pos.x*scaleN, v3.pos.y*scaleN);
+    //             centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
+    //
+    //             let C2=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
+    //             let C2SqLen=C2.sqLen();
+    //             tanD=radius*Math.sqrt((C2.x*radius)**2 + C2SqLen*(C2.y**2-radius**2));
+    //             tanX1=(C2.x*radius**2+tanD)/C2SqLen;
+    //             tanX2=(C2.x*radius**2-tanD)/C2SqLen;
+    //             let endpointS=new Vec2(tanX1, (radius**2-C2.x*tanX1)/C2.y);
+    //             let endpointT=new Vec2(tanX2, (radius**2-C2.x*tanX2)/C2.y);
+    //
+    //           let angleP=endpointU.sub(endpointV).dot(endpointS.sub(endpointT))+// TODO:NOTE:  this means radius has to be 1
+    //             endpointU.dot(endpointT)*endpointV.dot(endpointS)-
+    //             endpointU.dot(endpointS)*endpointV.dot(endpointT);
+    //             let angleQ=(1-endpointU.dot(endpointV))**2;
+    //             let angleR=(1-endpointS.dot(endpointT))**2;
+    //             let firstAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
+    //             let firstDiagonalLen=Math.acosh(1+2*v1.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v3.pos.sqLen()) ));
+    //             // console.log(firstDiagonalLen);
+    //
+    //           // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
+    //
+    //           let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
+    //           let lastEndpoint1=endpointS;
+    //           let lastEndpoint2=endpointT;
+    //
+    //           while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
+    //             let w1Index=wVerts[wVerts.length-2];
+    //             let w2Index=wVerts[wVerts.length-1];
+    //             let w1=V[w1Index];
+    //             let w2=V[w2Index];
+    //             let w3Found=false;
+    //             var w3Index=0;
+    //             let curEndpoint1, curEndpoint2;
+    //             for (; w3Index < numVerts; w3Index++) {
+    //               let w3=V[w3Index];
+    //
+    //               /* reasons w3 might be invalid */
+    //               if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
+    //               let edgeLen3=Math.acosh(1+2*w2.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w2.pos.sqLen())*(radius**2-w3.pos.sqLen()) )); //skip w3 because its distance to w2 is different than edgeLen1
+    //                 if (Math.abs(edgeLen1-edgeLen3)>0.001) {
+    //                   // console.log("a");
+    //                   continue;
+    //                 }
+    //               let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
+    //                 let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
+    //                 if (curOrientation<=0) {
+    //                   // console.log("widdershins poly!");
+    //                   continue;
+    //                 }
+    //               let newDiagonalLen=Math.acosh(1+2*w1.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w1.pos.sqLen())*(radius**2-w3.pos.sqLen()) ));//skip w3 because it makes a diagonal with a new length
+    //                 if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
+    //                   // console.log("diagonal new");
+    //                   continue;
+    //                 }
+    //
+    //               scaleM=(radius**2/w2.pos.sqLen() + 1)/2;//calculate endpoints of line w2 to w3
+    //                 scaleN=(radius**2/w3.pos.sqLen() + 1)/2;
+    //                 M=new Vec2(w2.pos.x*scaleM, w2.pos.y*scaleM);
+    //                 N=new Vec2(w3.pos.x*scaleN, w3.pos.y*scaleN);
+    //                 centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
+    //
+    //                 let C3=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
+    //                 let C3SqLen=C3.sqLen();
+    //                 tanD=radius*Math.sqrt((C3.x*radius)**2 + C3SqLen*(C3.y**2-radius**2));
+    //                 tanX1=(C3.x*radius**2+tanD)/C3SqLen;
+    //                 tanX2=(C3.x*radius**2-tanD)/C3SqLen;
+    //                 curEndpoint1=new Vec2(tanX1, (radius**2-C3.x*tanX1)/C3.y);
+    //                 curEndpoint2=new Vec2(tanX2, (radius**2-C3.x*tanX2)/C3.y);
+    //
+    //               angleP=lastEndpoint1.sub(lastEndpoint2).dot(curEndpoint1.sub(curEndpoint2))+ //calculate angle w1-w2-w3 // TODO:NOTE: this means radius has to be 1
+    //                 lastEndpoint1.dot(curEndpoint2)*lastEndpoint2.dot(curEndpoint1)-
+    //                 lastEndpoint1.dot(curEndpoint1)*lastEndpoint2.dot(curEndpoint2);
+    //                 angleQ=(1-lastEndpoint1.dot(lastEndpoint2))**2;
+    //                 angleR=(1-curEndpoint1.dot(curEndpoint2))**2;
+    //                 let curAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
+    //
+    //               if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
+    //                 // console.log("a");
+    //                 continue;
+    //               }
+    //
+    //               w3Found=true;
+    //               break;
+    //             }
+    //
+    //             if (w3Found) {//new taken vertex in streak
+    //               if (wVerts.length>50) console.error("Infinite loop (probably)");
+    //
+    //               if (w3Index==v1Index) {//successful loop back to start, polygon done
+    //                 if (true) {//check that the polygon isn't a star
+    //                   let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
+    //                   let isStar=false;
+    //                   for (var i = 2; i < wVerts.length; i++) {
+    //                     let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
+    //                     // console.log(curOrientation);
+    //                     if (curOrientation>=0) {
+    //                       isStar=true;
+    //                       break;
+    //                     }
+    //                   }
+    //                   if (isStar) {
+    //                     break;
+    //                   }
+    //                 }
+    //
+    //                 // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
+    //                 takenPolys[curPlayer].push(wVerts);
+    //                 // drawTakenPoly(wVerts, 1);
+    //
+    //                 break;
+    //               }
+    //               else {//polygon not yet done, continue through the streak
+    //                 wVerts.push(w3Index);
+    //                 lastEndpoint1=curEndpoint1;
+    //                 lastEndpoint2=curEndpoint2;
+    //                 // console.log("&&& Keep going!");
+    //                 // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
+    //               }
+    //             }
+    //             else {//streak of taken vertices ended, polygon is incomplete
+    //               // console.log("&&& Streak ended!");
+    //               break;
+    //             }
+    //
+    //             // break;
+    //           }
+    //
+    //
+    //           // TODO: exceptions...
+    //           // if (prevC.len()>10000) {
+    //           //   // for (var j=2; j<schlafliP; j++) {
+    //           //   //   let newV=P[i].verts[j];
+    //           //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
+    //           //   //
+    //           //   //   let s=V[v2].pos.sub(V[v1].pos);
+    //           //   //   let k=V[v1].pos.sub(normalI);
+    //           //   //
+    //           //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
+    //           //   //   // V[P[i].verts[j]].setPos(invertedI);
+    //           //   // }
+    //           //
+    //           //   console.log("bad!!!!!!!!!!!!!!!");
+    //           // }
+    //           // else {
+    //           //
+    //           // }
+    //         }
+    //       }
+    //     }
+    //     let newNumTakenPolys=takenPolys[curPlayer].length;
+    //     if (newNumTakenPolys!=prevNumTakenPolys) {
+    //       for (var i=prevNumTakenPolys; i<newNumTakenPolys; i++) {
+    //         drawTakenPoly(takenPolys[curPlayer][i], curPlayer, true);
+    //       }
+    //       drawAllVerts();
+    //       document.getElementById("score-display"+curPlayer).innerHTML=takenPolys[curPlayer].length;
+    //       lastClickTookPolygon=true;
+    //     }
+    //     numTakenVerts++;
+    //     document.getElementById("numTakenVerts").innerHTML=numTakenVerts;
+    //     curPlayer=curPlayer+1; if (curPlayer>numPlayers) curPlayer-=numPlayers;//move to next player
+    //     updateCurPlayerMarkerColor();
+    //   }
+    //   // console.log("click done");
+    // });
+    
+    window.addEventListener("keyup", function() {
       var curKey=event.keyCode;
       keys[curKey]=false;
       // console.log(keys);
@@ -1728,25 +3068,51 @@
       //   // var pixSize=14;
       //   gridWidth=canvas.width/pixSize; gridHeight=canvas.height/pixSize;
       //   initialiseGrid();
-      //   draw();
+      //   drawHyperbolicGrid();
       // }
       // console.log(keys);
       // console.log(curKey);
       switch (curKey) {
         case 32://space - pause
           paused=!paused;
-          console.log(paused?"Paused":"Unpaused");
-          update();
+          if (paused) {
+            // console.log("Paused");
+            dropBtn.innerHTML="⏸";
+            changingCanvas.style.display="none";
+          }
+          else {
+            // console.log("Unpaused");
+            update();
+            dropBtn.innerHTML="";
+            changingCanvas.style.display="";
+          }
           break;
-        case 68://d - draw
-          draw();
+        case 68://d - draw hyperbolic grid // TODO:
+          drawHyperbolicGrid();
           break;
-        // case 37://left
-        //   move.left();
-        //   break;
+        case 82://r - clear all
+          clearAll();
+          break;
+        case 90://z - undo
+          if (curMovement>=0) {
+            mouseUp();
+            curMovement--;
+            let lastMovementVal=movements.pop();
+            movementColors.pop();
+            movementSizes.pop();
+            let curMovementVal=movements.length==0 ? 0 : movements[movements.length-1];
+            mousePositions.splice(curMovementVal, lastMovementVal-curMovementVal);
+          };
+          drawAllPoints();
+          break;
       }
     });
-    // window.addEventListener("resize",function(){resize();})
+    window.addEventListener("resize", function() {
+      if (!resizeRequested) {
+        resizeRequested=true;
+        resizeWithWait();
+      }
+    });
   </script>
 </body>
 </html>
