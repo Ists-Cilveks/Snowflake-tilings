@@ -2,9 +2,9 @@
 <!-- TODO: elaborate notes -->
 <!--
   This code generates double square tiles, tilable snowflakes and allows drawing of symmetrical tilable shapes
-  
+
   ComProp is short for the article "Combinatorial properties of double square tiles"
-  
+
  -->
 <html lang="en" dir="ltr">
 <head>
@@ -12,7 +12,7 @@
   <title>Hyperbolic Snowflakes</title>
   <style media="screen">
     /* TODO: fix unit clusterfuck (vh, rem, px) */
-  
+
     body {
       /* background-color: rgb(10,15,30); */
       background-color: rgb(0,0,0);
@@ -27,7 +27,6 @@
       left: 0;
       top: 0;
     }
-    
     div span {
       color: white;
       /* padding: 5px 15px; */
@@ -37,13 +36,169 @@
       text-decoration: none;
       /* display: block; */
     }
-    
-    
-    
-    /* exclusive to hyperbolic */
+
+    button {
+      user-select: none;
+    }
+    .noSelect {
+      -webkit-touch-callout: none; /* iOS Safari */
+      -webkit-user-select: none; /* Safari */
+      -khtml-user-select: none; /* Konqueror HTML */
+      -moz-user-select: none; /* Old versions of Firefox */
+      -ms-user-select: none; /* Internet Explorer/Edge */
+      user-select: none; /* Non-prefixed version, currently
+      supported by Chrome, Edge, Opera and Firefox */
+    }
+
+
+
+    .drop-btn {/* Style The Dropdown Button */
+      background-color: #237;
+      /* background-color: #0000; */
+      /* color: white; */
+      /* padding: 0; */
+      /* font-size: 16px; */
+      width: 30px;
+      height: 30px;
+      border: none;
+      cursor: pointer;
+      position: absolute;
+      left: 0;
+      top: 0;
+      padding: 0;
+      /* font-size: 30px; */
+      font-size: 20px;
+    }
+
+    .dropdown {/* The container div - needed to position the dropdown content */
+      position: absolute;
+      left: 10px;
+      top: 10px;
+      display: inline-block;
+      background-color: #2228;
+      /* outline: 2px solid black; */
+    }
+
+    .dropdown-content {/* Dropdown Content (Hidden by Default) */
+      display: none;
+      /* display: inline-block; */ /* uncomment this to make the dropdown content always visible */
+      /* position: absolute; */
+      /* background-color: #237; */
+      /* box-shadow: 0px 8px 16px 0px #0004); */
+      /* padding: 6px 0px; */
+      z-index: 1;
+      vertical-align: top;
+    }
+
+    /* .dropdown-content div {/* Links inside the dropdown */
+
+    /*.dropdown-content div:hover {background-color: #335}/* Change color of dropdown links on hover */
+
+
+    .dropdown:hover .drop-btn {/* Hide the dropdown button while dropdown is being hovered */
+      display: none;
+    }
+    .dropdown:hover .dropdown-content {/* Display the dropdown content while the dropdown is being hovered */
+      display: inline-block;
+    }
+
+    .simple-button {
+      background-color: #237;
+    }
+    .simple-button:hover {
+      background-color: #124;
+    }
+
+    #draw-size-container {
+      padding: 0;
+      background-color: transparent;
+    }
+    .draw-size-option {
+      padding: 5px 10px;
+    }
+
+    #mirror-angle-setting-container {
+      margin-bottom: 1.5%;
+    }
+
+    .mirror-angle-input-option {
+      /* outline: 1px solid black; */
+      border-radius: 6px 6px 0 0;
+      margin-right: 1px;
+      padding: 5px 3.5% 1.5% 3.5%;
+    }
+
+    .mirror-angle-number-input {
+      width: 30%;
+      margin-left: 3px;
+      margin-right: 3px;
+    }
+    .mirror-angle-number-input-container {
+      /* outline: 2px dashed yellow; */
+      /* width: 200%; */ /* TODO: this shit doesn't work */
+      display: none;
+      background-color: #237;
+      border-radius: 0 0px 6px 6px;
+      padding: 5px 15px;
+    }
+
+    #mirror-angle-value-container {
+      color: white;
+      /* padding: 15px 5px; */
+      /* margin-top: 4px; */
+      margin-bottom: 2%;
+    }
+
+    #tiling-type-input {
+      color: white;
+    }
+
+    #auto-generate-valid-snowflake {
+      border: 1px solid #777;
+      border-radius: 3px;
+      background-color: #eee;
+      color: black;
+      padding: 1% 2%;
+    }
+    #auto-generate-valid-snowflake:disabled,
+    #auto-generate-valid-snowflake[disabled] {
+      /* border-color: #777;
+      background-color: #ddd;
+      color: #aaa; */
+      opacity: 0.5;
+    }
+    #auto-generate-valid-snowflake:hover {
+      background-color: #ddd;
+    }
+    #auto-generate-valid-snowflake:active {
+      background-color: #ccc;
+      padding: 1.3% 2% 0.7% 2%;/* TODO: probably not a good idea */
+      /* border-width: 3px; */
+    }
+
+
+    #use-mirrors-button {
+      padding: 0.8% 4%;
+      color: white;
+      border-radius: 0.25rem;
+      text-align: center;
+      width: 25%;
+    }
+
+    #tile-order-input {
+      font-size: 105%;
+    }
+
+    .color-select-option {
+      width: 13vw;
+      height: 3.5vh;
+    }
+
+
+
     .uiContainer {
       text-align: right;
-      
+
       /* font-family: cursive; */
       /* position: absolute; */
       left: 1.6vh;
@@ -86,171 +241,17 @@
       font-size: 3.5vh;
     }
 
-    button {
-      user-select: none;
-    }
-    .noSelect {
-      -webkit-touch-callout: none; /* iOS Safari */
-        -webkit-user-select: none; /* Safari */
-         -khtml-user-select: none; /* Konqueror HTML */
-           -moz-user-select: none; /* Old versions of Firefox */
-            -ms-user-select: none; /* Internet Explorer/Edge */
-                user-select: none; /* Non-prefixed version, currently
-                                      supported by Chrome, Edge, Opera and Firefox */
-    }
-    
-    
-    /* exclusive to snowflakes */
-    .drop-btn {/* Style The Dropdown Button */
-      background-color: #237;
-      /* background-color: #0000; */
-      /* color: white; */
-      /* padding: 0; */
-      /* font-size: 16px; */
-      width: 30px;
-      height: 30px;
-      border: none;
-      cursor: pointer;
-      position: absolute;
-      left: 0;
-      top: 0;
-      padding: 0;
-      /* font-size: 30px; */
-      font-size: 20px;
-    }
-
-    .dropdown {/* The container div - needed to position the dropdown content */
-      position: absolute;
-      left: 10px;
-      top: 10px;
-      display: inline-block;
-      background-color: #2228;
-      /* outline: 2px solid black; */
-    }
-
-    .dropdown-content {/* Dropdown Content (Hidden by Default) */
-      display: none;
-      /* position: absolute; */
-      /* background-color: #237; */
-      /* box-shadow: 0px 8px 16px 0px #0004); */
-      /* padding: 6px 0px; */
-      z-index: 1;
-      display: inline-block;
-      vertical-align: top;
-    }
-
-    /* .dropdown-content div {/* Links inside the dropdown */
-
-    /*.dropdown-content div:hover {background-color: #335}/* Change color of dropdown links on hover */
-
-
-    .dropdown:hover .drop-btn {/* Hide the dropdown button while dropdown content is being hovered */
-      /* background-color: #124; */
-      display: none;
-    }
-
-    .simple-button {
-      background-color: #237;
-    }
-    .simple-button:hover {
-      background-color: #124;
-    }
-
-    #draw-size-container {
-      padding: 0;
-      background-color: transparent;
-    }
-    .draw-size-option {
-      padding: 5px 10px;
-    }
-
-    #mirror-angle-setting-container {
-      margin-bottom: 1.5%;
-    }
-
-    .mirror-angle-input-option {
-      /* outline: 1px solid black; */
-      border-radius: 6px 6px 0 0;
-      margin-right: 1px;
-      padding: 5px 3.5% 1.5% 3.5%;
-    }
-
-    .mirror-angle-number-input {
-      width: 30%;
-      margin-left: 3px;
-      margin-right: 3px;
-    }
-    .mirror-angle-number-input-container {
-      /* outline: 2px dashed yellow; */
-      /* width: 200%; */ /* TODO: this shit doesn't work */
-      display: none;
-      background-color: #237;
-      border-radius: 0 0px 6px 6px;
-      padding: 5px 15px;
-    }
-    
-    #mirror-angle-value-container {
-      color: white;
-      /* padding: 15px 5px; */
-      /* margin-top: 4px; */
-      margin-bottom: 2%;
-    }
-    
-    #tiling-type-input {
-      color: white;
-    }
-
-    #auto-generate-valid-snowflake {
-      border: 1px solid #777;
-      border-radius: 3px;
-      background-color: #eee;
-      color: black;
-      padding: 1% 2%;
-    }
-    #auto-generate-valid-snowflake:disabled,
-    #auto-generate-valid-snowflake[disabled] {
-      /* border-color: #777;
-      background-color: #ddd;
-      color: #aaa; */
-      opacity: 0.5;
-    }
-    #auto-generate-valid-snowflake:hover {
-      background-color: #ddd;
-    }
-    #auto-generate-valid-snowflake:active {
-      background-color: #ccc;
-      padding: 1.3% 2% 0.7% 2%;/* TODO: probably not a good idea */
-      /* border-width: 3px; */
-    }
-
-    
-    #use-mirrors-button {
-      padding: 0.8% 4%;
-      color: white;
-      border-radius: 0.25rem;
-      text-align: center;
-      width: 25%;
-    }
-    
-    #tile-order-input {
-      font-size: 105%;
-    }
-    
-    .color-select-option {
-      width: 13vw;
-      height: 3.5vh;
-    }
   </style>
 </head>
 <body>
   <canvas id="canvas" width="300" height="300"></canvas>
   <canvas id="changing-canvas" width="300" height="300"></canvas>
-  
+
   <div class="dropdown">
     <button id="drop-btn" class="drop-btn"></button>
-    
-    
-    
+
+
+
     <div class="dropdown-content" id="color-select-dropdown"></div>
     <!-- <div class="dropdown-content" style="width:40vw"> -->
     <div class="dropdown-content">
@@ -264,19 +265,19 @@
         <span style="font-size: 95%">Rotational order </span><input style="width:15%" id="tile-order-input" min="1" type="number" step="1" value="0" onchange="changeTileOrder()">
       </div>
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
-      
+
       <!-- <hr> -->
-      
+
       <div id="mirror-angle-container">
         <div id="mirror-angle-setting-container" style="padding-left: 0; padding-bottom:5px; padding-top: 2%"></div><!-- which mirror angle input setting to use (slope, deg, rad...) -->
         <div id="mirror-angle-value-container" style="padding-left: 0"></div>
       </div>
-      
+
       <form style="margin-bottom: 3%" id="tiling-type-input" onchange="changeTilingType()"></form>
       <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="generateValidTilingVertArr()">Auto-generate</button>
-      
+
       <hr>
-      
+
       <div class="dropdown-content uiContainer">
         <div id="curPlayerMarker" style="position:absolute;">⬤</div>
         <div><p class="inlineNumber" id="numTakenVerts">0</p>/<p class="inlineNumber" id="numVerts">0</p></div>
@@ -292,7 +293,7 @@
       </div>
     </div>
   </div>
-  
+
   <script type="text/javascript">
     "use strict";
     function rand(max=1) {
@@ -366,6 +367,9 @@
     }
 
     /* TODO:
+      a bunch of attribution is still needed
+      
+      
       replace a bunch of 0.001 epsilons
       nicer board shape
       prettier taken circles
@@ -379,9 +383,9 @@
       also euclidean tilings (maybe also spherical and penrose)
         also add player chosen distortions, to get more used to counting on the grid
       fix having to rotate the board slightly? (see other to-dos)
-      
-      
-      
+
+
+
       symmetry group selection (chiral and achiral polygons, replace mirrorM with mirror angle (?))
       word ui
       just drawing previews is demanding? (canvas transformations might help???)
@@ -396,8 +400,8 @@
       refactor all the things
       replace var with let?
     */
-    
-    
+
+
     function wordPeriodLen(w) {
       let period=1;
       let periodFound=false;
@@ -481,14 +485,14 @@
         let wNegative1=wordRho(-1, w1);
         let uv=w1.slice().reverse().concat(wNegative1);
         let vu=w1.slice().concat(wNegative1.slice().reverse());
-        
+
         let fromSplitFunc=wordSplitUVAndVU(uv, vu);
-        
+
         if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
           console.log("");
           console.warn("alert002 getU0V0");
           // alert("alert002 getU0V0");
-          
+
           let fromFunc=wordUV(this.w0);
           let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
           let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
@@ -512,14 +516,14 @@
         let w2=wordRho(1, w0);
         let uv=w2.slice().reverse().concat(w0);
         let vu=w2.slice().concat(w0.slice().reverse());
-        
+
         let fromSplitFunc=wordSplitUVAndVU(uv, vu);
-        
+
         if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
           console.log("");
           console.warn("alert002 getU1V1");
           // alert("alert002 getU1V1");
-          
+
           let fromFunc=wordUV(this.w1);
           let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
           let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
@@ -553,7 +557,7 @@
             return [];
           }
         }
-        
+
         // let fromFunc=wordUV(this.w0);
         // // console.log(fromFunc);
         // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
@@ -584,7 +588,7 @@
             return [];
           }
         }
-        
+
         // let fromFunc=wordUV(this.w1);
         // // console.log(fromFunc);
         // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
@@ -693,7 +697,7 @@
         let uv=this.getU0V0();
         let newW0=this.w0.slice(uv.u.length).concat(uv.v);
         return new DSF(newW0, newW1, arrayPush(this.operatorTrace.slice(), "swap1"));
-        
+
         // TODO: use rotation for all duplicate actions?
         // let rotatedResult=new DSF(this.w1, wordRho(1, this.w0)).swap0();
         // return new DSF(rotatedResult.w1, wordRho(1, rotatedResult.w0));// TODO: rotating forwards a second time, should rotate back? DSF(rho(-1, w1), w0) or smth like that
@@ -733,14 +737,14 @@
         ctx.lineWidth=1;
         ctx.strokeStyle=settings.strokeStyle;
         ctx.fillStyle=settings.fillStyle;
-        
+
         let edgeVector=this.getEdgeVector();
         let maxDistFromCenter;
         if (settings.useDistFromCenter) {
           maxDistFromCenter=this.getMaxDistFromCenter();
         }
         // console.log(maxDistFromCenter);
-        
+
         // let segmentLength=1/maxDistFromCenter;
         const edgeAngleOffset=edgeVector.ang()+HPI;
         // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
@@ -763,7 +767,7 @@
         // TODO: i don't know why this works
         // set startPos - the point where the path begins drawing
         // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-        
+
         const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
         // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
         // for (var ttr = 0; ttr < 1; ttr++) {
@@ -771,11 +775,11 @@
           let transf=tilingTransforms[ttr];
           //define the tiles' contact point as the beginning of the boundary
           let curPos=startPos;
-          
+
           ctx.beginPath();
           // ctx.moveTo(curScreenPos.x, curScreenPos.y);
           let edgeWord=this.getEdgeWord();
-          
+
           for (var j = 0; j < tileOrder; j++) {
             for (var i = 0; i < edgeWord.length; i++) {
               let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
@@ -851,7 +855,7 @@
         return false;
       }
       this.isValidPolyform=function() {// TODO: would likely be useful
-        
+
       }
     }
     function DSFDrawingSettings() {
@@ -863,13 +867,13 @@
       this.useTilingTransforms=false;
       this.useDistFromCenter=false;
     }
-    
+
     // var curDSF=new DSF([0,1,0,1], [2,1,2,1,0,1,0]);
     // var curDSF=new DSF([0], [1,0,1,0]);
     // var curDSF=new DSF([1,0,1,0], [1]);
     // var curDSF=new DSF([1,0,1,0,5,0,5,4,5,4], [5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1]);
     // var curDSF=new DSF([5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1], [2,1,2,1,0,1,0,5,0,5]);
-    
+
     function logCurDSFInfo() {
       console.log("%c"+curDSF.w0+" and "+curDSF.w1, "font-size: 180%; color: #9f6; padding-top:2%; padding-bottom: 2%");
       console.log(wordRho(-1, curDSF.w0), wordRho(-1, curDSF.w1), curDSF.w0, curDSF.w1, wordRho(1, curDSF.w0), wordRho(1, curDSF.w1));
@@ -881,13 +885,13 @@
       console.log("u1", uv1.u, "v1", uv1.v);
       console.log("%c                                                   ", "display: inline-block; border: 2px solid lightgray; font-size:1px");
     }
-    
+
     // regular polygons:
     // var curDSF=new DSF([], [0]);
     // curDSF=curDSF.extend0();
     var curDSF=new DSF([0], []);
     curDSF=curDSF.extend1();
-    
+
     // curDSF=curDSF.swap1();// TODO: generation seems broken
     // curDSF=curDSF.swap0();
     // curDSF=curDSF.extend0();
@@ -899,12 +903,12 @@
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.extend0();
     // curDSF=curDSF.extend1();
-    
+
     // logCurDSFInfo();
     // console.log("%cresult", "font-size:200%; padding:1%");
     // console.log(curDSF.w0, curDSF.w1);
     console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
-    
+
     function setDrawingToCurDSF() {//set the mirror angle to that of curDSF, so you can draw inside of the path generated by curDSF
       let edgeVec=curDSF.getEdgeVector();
       // console.log(edgeVec);
@@ -929,7 +933,7 @@
         }
         // let S=Q.pop();
         let S=Q.shift();
-        
+
         let SIsNotYetInT=true;
         for (var ti = 0; ti < T.length; ti++) {//check if S is in T
           if (S.isEqualTo(T[ti])) SIsNotYetInT=false;
@@ -939,13 +943,13 @@
           // console.log(S.isValidInSomeNotYetClearWay());// TODO: always true, even when self-crossing
           if (S.isValidInSomeNotYetClearWay()) resultingDSFArray.push(S);
         }
-        
+
         let U=[S.extend0(), S.extend1(), S.swap0(), S.swap1()];
         // console.log(U);
         // console.log(S.extend1());
         for (var ui = 0; ui < U.length; ui++) {
           let alreadyGenerated=false;
-          
+
           for (var qi = 0; qi < Q.length; qi++) {//check if U[ui] is in Q
             if (Q[qi].isEqualTo(U[ui])) alreadyGenerated=true;
           }
@@ -970,7 +974,7 @@
       // settings.DSFRelativeRadius=0.9/gridHeight;
       settings.DSFRelativeRadius=DSFGridScaling/gridHeight;
       settings.useDistFromCenter=true;
-      
+
       for (var i = 0; i < gridHeight; i++) {
         for (var j = 0; j < gridWidth; j++) {
           let wordIndex=i*gridWidth+j;
@@ -980,7 +984,7 @@
           }
           settings.pos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight);
           resultingDSFArray[wordIndex].drawWithSettings(settings);
-          
+
           ////debug points (centers of tiles)
           // context.fillStyle="#f00";
           // let curPos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight).screen();
@@ -989,24 +993,11 @@
       }
       // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
     }
-    
-    
-    
-    
-    var schlafliSymbol=[5, 4];
-    // var schlafliSymbol=[4, 5];
-    // var schlafliSymbol=[6, 4];
-    // var schlafliSymbol=[4, 6];
-    // var schlafliSymbol=[8, 3];
-    // var schlafliSymbol=[10, 3];
-    // var schlafliSymbol=[3, 8];
-    // var schlafliSymbol=[3, 27];
-    
-    // var schlafliSymbol=[4, 4];
-    
+
+
     var canvas=document.getElementById("canvas");
       var context=canvas.getContext("2d");
-      
+
       var changingCanvas=document.getElementById("changing-canvas");
       var changingContext=changingCanvas.getContext("2d");
       var dropBtn=document.getElementById("drop-btn");
@@ -1014,7 +1005,7 @@
       var tileOrderInput=document.getElementById("tile-order-input");
       var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
       var mirrorAngleContainer=document.getElementById("mirror-angle-container");
-      
+
       const TAU=2*Math.PI;
         const PI=Math.PI;
         const HPI=Math.PI/2;
@@ -1022,15 +1013,16 @@
         const ROOT2=Math.sqrt(2);
         const ROOT3=Math.sqrt(3);
         const HALFROOT3=Math.sqrt(3)/2;
-      var paused=true;
+      var paused=false;
       var frameSkip=1;// TODO: what's the right value? (10 in hyp, 1 in snow?)
       var fReqs=frameSkip;
       var colorChangeSteps=0;
       var keys=[];
+      var mousePos=new Vec2();
+      var mouseDown=false;
       var height=100;// TODO: use this instead of canvas.height, similarly do for width (or delete this)
-      
-      
-      //snowflakes
+
+
       var mousePositions=[];//mouse locations as Vec2 for individual points
       var movements=[];      //
       var movementColors=[]; //
@@ -1042,18 +1034,42 @@
       var framesSinceResize=minFramesSinceResize;
       var resizeRequested=true;//has the window been resized while the canvas hasn't yet?
       const mouseSlowingFactor=1.5;//0-infinity, how much mouse movement is smoothed out, see equation in mousemove event
+
+      // var schlafliSymbol=[5, 4];
+      // var schlafliSymbol=[4, 5];
+      // var schlafliSymbol=[6, 4];
+      // var schlafliSymbol=[4, 6];
+      // var schlafliSymbol=[8, 3];
+      // var schlafliSymbol=[10, 3];
+      // var schlafliSymbol=[3, 8];
+      // var schlafliSymbol=[3, 27];
+      // var schlafliSymbol=[4, 4];
+      
+      // var schlafliSymbol=[7, 3];
+      // var schlafliSymbol=[3, 7];
+      // var schlafliSymbol=[5, 6];
+      var schlafliSymbol=[4, 6];
+      
+      var schlafliP=schlafliSymbol[0];
+      var schlafliQ=schlafliSymbol[1];
+      
       
       // var tileOrder= 4 ;
       // var tilingTypeIndex= 1 ;
-      var tileOrder= 6 ;
-      var tilingTypeIndex= 2 ;
+      // var tileOrder= 6 ;
+      // var tilingTypeIndex= 2 ;
       // var tileOrder= 3 ;
       // var tilingTypeIndex= 3 ;
       // var tileOrder= 12 ;
       // var tilingTypeIndex= 1 ;
-      
+      // var tileOrder= 5 ;
+      // var tileOrder= 7 ;
+      // var tilingTypeIndex= 5 ;
+      var tileOrder= schlafliP ;
+      var tilingTypeIndex= 5 ;
+
       tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
-      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"]];
+      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
       for (var i = 0; i < tilingTypes.length; i++) {
         let t=tilingTypes[i];//the current tiling type
         document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
@@ -1106,7 +1122,7 @@
       for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {//add color select elements
         // TODO: this is dumb
         document.getElementById("mirror-angle-setting-container").innerHTML+="<span class='mirror-angle-input-option' id='mirror-angle-input-option-"+i+"' onclick='setCurMirrorAngleInput("+i+")'>"+mirrorAngleInputOptionsArr[i][0]+"</span>";
-        document.getElementById("mirror-angle-value-container").innerHTML+="<div class='mirror-angle-number-input-container' id='mirror-angle-number-input-container-"+i+"'>"+mirrorAngleInputOptionsArr[i][2]+"<input class='mirror-angle-number-input' id='mirror-angle-number-input-"+i+"' type='number' step='any' value='15' onchange='changeMirrorAngle()'>"+mirrorAngleInputOptionsArr[i][3]+"<br>";
+        document.getElementById("mirror-angle-value-container").innerHTML+="<div class='mirror-angle-number-input-container' id='mirror-angle-number-input-container-"+i+"'>"+mirrorAngleInputOptionsArr[i][2]+"<input class='mirror-angle-number-input' id='mirror-angle-number-input-"+i+"' type='number' step='any' value='10000' onchange='changeMirrorAngle()'>"+mirrorAngleInputOptionsArr[i][3]+"<br>";// TODO: better default value
       }
       setCurMirrorAngleInput();
 
@@ -1122,10 +1138,9 @@
         let clickability=canAutoGenerateGeometrically();
         autoGenerateButton.disabled=!clickability;
       }
+
+
       
-      
-      
-      //hyperbolic
       var P=[];//Polygons array
       var V=[];//Vertices array
       const radius=1;//has to be 1
@@ -1134,8 +1149,6 @@
       var numPolys=0;
       var numVerts=0;
       var takenPolys=[];//what polygons have been taken by one player
-      var schlafliP=schlafliSymbol[0];
-      var schlafliQ=schlafliSymbol[1];
       document.getElementById("schlafliP").value=schlafliP;
       document.getElementById("schlafliQ").value=schlafliQ;
       document.getElementById("numPlayers").value=numPlayers;
@@ -1143,7 +1156,8 @@
       var lastClickTookPolygon=false;
       var poincareEdgeLength;
       var isEuclidean=false;
-      var vertexCircleRadius=0.35;
+      var hypPolyVertRadius=0.15;
+      var hypPolyEdgeWidth=0.03;
       
       function distortion(vec) {
         return vec;//do nothing function
@@ -1152,7 +1166,9 @@
         // return vec.mult( Math.sin(dist*HPI) /dist);
         // return vec.mult( Math.asin(dist)/HPI /dist);
       }
-    
+      
+      
+
     ;//COLORS
       function Color(r=255, g=0, b=255, a=1) {
         this.r=r;
@@ -1308,7 +1324,8 @@
         blendingTest: new Gradient([colors.green, 0, colors.red, 1])
       }
       var useGradient=gradients.tech;
-      
+
+      // TODO: takeColors was used for hyperbolic metasquares, probably won't be useful anymore
       // var BGColor=new Color(10, 15, 30);
       var takeColors=[[255,255,0],
         [213, 94, 0],
@@ -1344,7 +1361,7 @@
       //     face: "rgba(0, 7, 165, 30%)"
       //   }
       // ]
-      
+
       var drawColors=[];
       for (const col in colors) {//initialize drawColors with all predefined colors
         drawColors.push(colors[col]);
@@ -1352,8 +1369,12 @@
       for (var i = 0; i < drawColors.length; i++) {//add color select elements
         document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectFillColor(new Color("+drawColors[i].r+", "+drawColors[i].g+", "+drawColors[i].b+"))'> </div>";// TODO: use "...drawColors["+i+"]..." instead of .r, .g and .b
       }
-    
-    
+      
+      var boundaryCircleColor="hsla(0, 0%, 100%, 0.7)";
+      var hypPolyEdgeColor="rgb(110, 110, 110)";
+      var hypPolyVertDefaultColor="rgb(220, 220, 220)";
+      
+
     function Vec2(x=0, y=0) {
       this.x=x;
       this.y=y;
@@ -1501,8 +1522,8 @@
       this.jHatY=jHatY;
       this.shiftX=shiftX;
       this.shiftY=shiftY;
-      this.getCopy=function() {
-        return new Affine2(iHatX, iHatY, jHatX, jHatY, shiftX, shiftY);
+      this.getCopy=function() {// TODO: untested (unnecessary?)
+        return new Affine2(this.iHatX, this.iHatY, this.jHatX, this.jHatY, this.shiftX, this.shiftY);
       }
       this.getIHat=function(){return new Vec2(this.iHatX, this.iHatY);};
       this.getJHat=function(){return new Vec2(this.jHatX, this.jHatY);};
@@ -1535,6 +1556,48 @@
       return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), v.x, v.y);
     }
     
+    function HyperbolicTransform(shiftDist=0, shiftAng=0, rotateAng=0) {//class for a 2D affine transformation
+      this.shiftDist=shiftDist;
+      this.shiftAng=shiftAng;
+      this.rotateAng=rotateAng;
+      this.getCopy=function() {
+        return new HyperbolicTransform(this.shiftDist, this.shiftAng, this.rotateAng);
+      }
+      this.applyTo=function(v) {
+        let res=v.rotate(this.rotateAng-this.shiftAng);
+        res=this.applyTranslationTo(res);
+        res=res.rotate(this.shiftAng);
+        return res;
+      }
+      this.applyTranslationTo=function(v) {
+        let ex=Math.exp(this.shiftDist);
+        return new Vec2(//working
+          (ex*v.x+v.x+ex-1) * (ex*v.x-v.x+ex+1) - (ex*v.y+v.y) * (v.y-ex*v.y),
+          4*ex*v.y
+        ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
+        // return new Vec2(// TODO: optimize? (same as in applyTo)
+        //   (ex*v.x+v.x+ex-1) * (ex*v.x-v.x+ex+1) - (ex*v.y+v.y) * (v.y-ex*v.y),
+        //   4*ex*v.y
+        // ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
+      }
+      
+      // TODO: unimplemented
+      this.scaleShiftBy=function(s) {//multiply the shifting vector by s
+        let copy=this.getCopy();
+        // copy.shiftX*=s;
+        // copy.shiftY*=s;
+        return copy;
+      }
+      this.scaleTransformBy=function(s) {//multiply the linear transformation matrix by s
+        let copy=this.getCopy();
+        // copy.iHatX*=s;
+        // copy.iHatY*=s;
+        // copy.jHatX*=s;
+        // copy.jHatY*=s;
+        return copy;
+      }
+    }
+
     function Polygon () {// TODO: classes with push, not weird index saving
       this.numNext=0;
       this.next=[];
@@ -1577,17 +1640,18 @@
         // this.drawPos=v.square();
         // this.drawPos=new Vec2(v.x, v.y);
 
-        // let y=(Math.cosh(poincareEdgeLength*vertexCircleRadius)-1)/2;
+        // let y=(Math.cosh(poincareEdgeLength*hypPolyVertRadius)-1)/2;
         // // isEuclidean ? 10 :
         // let fracBottom=1-y*this.magnit**2+y;
-        // this.radius=isEuclidean ? poincareEdgeLength*vertexCircleRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
+        // this.radius=isEuclidean ? poincareEdgeLength*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
         // // let drawCenterDist=this.magnit/fracBottom;
         // this.drawPos=this.pos.mult(1/fracBottom);
 
         let distortPos=distortion(this.pos);
-        let y=(Math.cosh(poincareEdgeLength*vertexCircleRadius)-1)/2;
+        // TODO: where does this come from? what does this do?
+        let y=(Math.cosh(poincareEdgeLength*hypPolyVertRadius)-1)/2;
         let fracBottom=1-y*this.magnit**2+y;
-        this.radius=isEuclidean ? poincareEdgeLength*vertexCircleRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
+        this.radius=isEuclidean ? poincareEdgeLength*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
         // this.radius=0.01;
         // let drawCenterDist=this.magnit/fracBottom;
         this.drawPos=distortPos.mult(1/fracBottom);
@@ -1610,12 +1674,12 @@
         else {
           context.beginPath();
           context.arc(screenPos.x, screenPos.y, this.radius*height/2, 0, TAU);
-          context.fillStyle="rgb(220, 220, 220)";
+          context.fillStyle=hypPolyVertDefaultColor;
           context.fill();
         }
       }
     };
-    
+
     function smootherStep(x) {
       return x * x * x * (x * (x * 6 - 15) + 10);
     }
@@ -1718,10 +1782,10 @@
       var color=useGradient.get(rand()).grayen(0.2).modify(50);
       context.lineWidth=isEuclidean
         ? 0.025*height/2
-        : 0.06*(1-pathData.avgVertPos.sqLen())*height/2;
+        : hypPolyEdgeWidth*(1-pathData.avgVertPos.sqLen())*height/2;
       // context.strokeStyle="rgb(0, 0, 0)";
       // context.strokeStyle="rgb(220, 220, 220)";
-      context.strokeStyle="rgb(110, 110, 110)";
+      context.strokeStyle=hypPolyEdgeColor;
       // context.lineWidth=1;
       // context.strokeStyle=color.rgb();
       context.fillStyle=color.rgb();
@@ -1756,14 +1820,15 @@
     function updateCurPlayerMarkerColor() {
       document.getElementById("curPlayerMarker").style.color=takeColors[curPlayer].vertex;
     }
-    
-    
-    
+
+
+
     var BGColor=new Color(0, 0, 0);
     var fillColor=new Color(255, 255, 255);
     var fillColorWithErase=fillColor;//temporary color (same as fillColor except when erasing, then it's the background color)
     var drawSize=1;// TODO: relative to unit, otherwise scaling messes up filled regions
 
+    var useHyperbolicTilingTransforms=false;
     var tilingTransforms=[];
     var inTileTransforms=[];// TODO: full affine transformation array instead?
     var mirrorM; // m of the mirror line y=mx
@@ -1773,7 +1838,7 @@
 
     setDrawingToCurDSF();
     changeMirrorAngle();
-    
+
     function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
       inTileTransforms=[];
       let s=tileOrder;
@@ -1854,10 +1919,11 @@
       setInTileTransforms();
       clearAll();
     }
-    
+
     // TODO: dynamically set as many as are needed with the current canvas size
-    // TODO: scaling based on selected tiling
+    // TODO: scaling based on selected tiling (some naturally appear bigger than others due to unit edge lengths and different polygons)
     function setTilingTransforms() {
+      useHyperbolicTilingTransforms=false;//default to using affine transformations instead of hyperbolic isometries
       switch (tilingTypeName) {
         case "square":
           tilingTransforms=[
@@ -1870,16 +1936,16 @@
             new Vec2(-1, -1),
             new Vec2(-1, 0),
             new Vec2(-1, 1),
-            
+
             new Vec2(0, -1),
 
             new Vec2(0, 1),
-            
+
             //not so necessary
             new Vec2(1, -1),
             new Vec2(1, 0),
             new Vec2(1, 1),
-            
+
             new Vec2(2, -1),
             new Vec2(2, 0),
             new Vec2(2, 1)
@@ -1920,15 +1986,15 @@
             new Vec2(-1, 0),
             new Vec2(-0.5, ROOT3/2),
             new Vec2(-0.5, -ROOT3/2),
-            
+
             new Vec2(1, 0),
             new Vec2(0.5, ROOT3/2),
             new Vec2(0.5, -ROOT3/2),
-            
+
             //not so necessary
             new Vec2(2, 0),
             new Vec2(-2, 0),
-            
+
             // new Vec2(0, ROOT3),
             // new Vec2(-1, ROOT3),
             // new Vec2(1, ROOT3),
@@ -1936,10 +2002,10 @@
             // new Vec2(0, -ROOT3),
             // new Vec2(-1, -ROOT3),
             // new Vec2(1, -ROOT3),
-            
+
             new Vec2(-1.5, ROOT3/2),
             new Vec2(-1.5, -ROOT3/2),
-            
+
             new Vec2(1.5, ROOT3/2),
             new Vec2(1.5, -ROOT3/2)
           ].map(x => Affine2FromShift(x.mult(ROOT3)));
@@ -1959,9 +2025,9 @@
             [TAU/6, new Vec2(-0.5, -ROOT3/2)],
             [0, new Vec2(-1.5, -ROOT3/2)],
             [0, new Vec2(0, -ROOT3)],
-            
+
             [TAU/6, new Vec2(-2, 0)],
-            
+
             [TAU/6, new Vec2(1, ROOT3)],
             [TAU/6, new Vec2(1, -ROOT3)]
           ].map(x => Affine2FromAngleAndShift(x[0], x[1].mult(1/ROOT3)));
@@ -1969,6 +2035,40 @@
           break;
         case "none":
           tilingTransforms=[new Affine2()];
+          break;
+        case "hypTest":
+          useHyperbolicTilingTransforms=true;
+          tilingTransforms=[
+            new HyperbolicTransform(),
+            new HyperbolicTransform(1, 1, 0)
+          ]
+          break;
+        case "regular using schlafli":// TODO: generalize
+          useHyperbolicTilingTransforms=true;// TODO: is this needed? (because i have applyTo methods)
+          // let schlafliP=7; let schlafliQ=3;
+          // let schlafliP=3; let schlafliQ=7;
+          // let schlafliP=5; let schlafliQ=6;
+          // let centerToVertex=1.1;
+          let centerToVertex=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));// TODO: attribution to malinc site (here and in restart (actually make a single function)) // TODO: actually make this a global variable to use here and in reset
+          // console.log("eucl",centerToVertex);
+          
+          //convert euclidean distance to hyperbolic distance
+          // centerToVertex=Math.acosh(1+ (2*centerToVertex**2) / (1-centerToVertex**2) );// TODO: attribute to https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model (if used)
+          centerToVertex=2*Math.atanh(centerToVertex);//same as previous method // TODO: attribute to Poincar´e’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
+          // console.log("to hyp",centerToVertex);
+          
+          //i need the distance to the edge midpoint, not to the vertex
+          let centerToEdgeMidpoint=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertex)) // TODO: attribute hyperbolic trigonometry formula to https://en.wikipedia.org/wiki/Hyperbolic_triangle
+          
+          // TODO: put these steps into one formula?
+          
+          tilingTransforms=[
+            new HyperbolicTransform()
+          ]
+          for (var i = 0; i < schlafliP; i++) {
+            // tilingTransforms.push(new HyperbolicTransform(centerToVertex, TAU*i/schlafliP, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
+            tilingTransforms.push(new HyperbolicTransform(2*centerToEdgeMidpoint, TAU*(i+0.5)/schlafliP, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
+          }
           break;
         default:
           alert("this shouldn't have happened! (invalid tiling type)");
@@ -2131,7 +2231,7 @@
       curDSF.drawToWholeScreen();
       // generateDSFGrid();
     }
-    
+
     function update() {
       if (!paused) {
         if (fReqs>=frameSkip) {
@@ -2162,11 +2262,11 @@
       }
     }
 
-    function drawHyperbolicGrid() {
+    function drawHyperbolicGrid() {// TODO: jankiness could be lessened with homogenous coordinates
       context.fillStyle=BGColor.rgb();
       context.fillRect(0, 0, canvas.width, canvas.height);
       if (!isEuclidean) {//draw boundary circle
-        context.strokeStyle="hsla(0, 0%, 100%, 0.7)";
+        context.strokeStyle=boundaryCircleColor;
         context.lineWidth=1.5;
         context.beginPath();
         context.arc(canvas.width/2, canvas.height/2, canvas.height/2, 0, TAU);
@@ -2186,7 +2286,7 @@
       }
       drawAllVerts();
     }
-    // function update() {// TODO: do i need this (from hyp)
+    // function update() {// TODO: do i need this? (from hyp)
     //   if (!paused) {
     //     if (fReqs>=frameSkip) {
     //       fReqs-=frameSkip;
@@ -2248,8 +2348,8 @@
           // let offsetAng=0; let offsetX=0.02; let offsetY=0.01;//c++ version, causes problems near borders
           // let offsetAng=0; let offsetX=0.001; let offsetY=0.002;//stable
           // let offsetAng=0.001; let offsetX=0.0001; let offsetY=0.00002;//extra stable?
-          // let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for polygon checking)
-          let offsetAng=0.05; let offsetX=0; let offsetY=0;//newly stable
+          let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for polygon checking)
+          // let offsetAng=0.05; let offsetX=0; let offsetY=0;//newly stable
           // let offsetAng=0; let offsetX=0; let offsetY=0;// TODO: why doesn't it work??
 
           // let offsetAng=0.001; let offsetX=0; let offsetY=0;
@@ -2570,7 +2670,7 @@
         }
 
       }
-      // /* DEBUG (print graph info) */
+      // /* DEBUG (dump graph info) */
       // for (var i=0; i<numVerts; i++) {
       //   console.log("V[" + i + "]");
       //   console.log("Adjacent vertices:", V[i].next);
@@ -2606,7 +2706,10 @@
     }
     function clearAll() {
       context.clearRect(0, 0, canvas.width, canvas.height);
-      if (initialDrawingReady) drawFromCurDSF();// TODO: probably a better place for this
+      if (initialDrawingReady) {
+        drawFromCurDSF();// TODO: probably a better place for this?
+        drawHyperbolicGrid();
+      }
       mousePositions=[];
       movements=[];
       movementColors=[];
@@ -2657,8 +2760,6 @@
       fillColor=fillColorWithErase=c;
     }
 
-    var mousePos=new Vec2();
-    var mouseDown=false;
     window.addEventListener("mousemove", function() {
       // if (!paused) {
         // mousePos.x=event.clientX;
@@ -2686,9 +2787,8 @@
     }
     changingCanvas.onmouseup = mouseUp;
 
-
     // canvas.addEventListener("click",function(){
-    
+
     // changingCanvas.addEventListener("click",function(){// TODO: something with this mess
     //   let mouseCoords=new Vec2(event.clientX, event.clientY).unscreen();
     //   let v1;
@@ -3054,7 +3154,7 @@
     //   }
     //   // console.log("click done");
     // });
-    
+
     window.addEventListener("keyup", function() {
       var curKey=event.keyCode;
       keys[curKey]=false;
