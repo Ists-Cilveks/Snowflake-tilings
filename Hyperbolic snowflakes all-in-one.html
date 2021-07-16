@@ -235,11 +235,6 @@
        padding-bottom:3px;
        padding-top:3px;
     }
-    #curPlayerMarker {
-      user-select: none;
-      padding-left: 0.6vh;
-      font-size: 3.5vh;
-    }
 
   </style>
 </head>
@@ -279,15 +274,8 @@
       <hr>
 
       <div class="dropdown-content uiContainer">
-        <div id="curPlayerMarker" style="position:absolute;">⬤</div>
-        <div><p class="inlineNumber" id="numTakenVerts">0</p>/<p class="inlineNumber" id="numVerts">0</p></div>
-        <div id="scoreContainer" class="uiSubContainer"></div>
         <div class="uiSubContainer">
-          <span id="schlafliInputContainer"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid with<br>
-          <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> players
-          <!-- <input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">
-          <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">
-          <input class="gameSettingsNumbers" type="number" id="numPlayers" name="numPlayers" min="1" max="10"> -->
+          <span id="schlafliInputContainer"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid<br>
           <button onclick="restart()"><b>Go</b></button>
         </div>
       </div>
@@ -401,6 +389,174 @@
       replace var with let?
     */
 
+
+    var canvas=document.getElementById("canvas");
+      var context=canvas.getContext("2d");
+      
+      var changingCanvas=document.getElementById("changing-canvas");
+      var changingContext=changingCanvas.getContext("2d");
+      var dropBtn=document.getElementById("drop-btn");
+      var useMirrorsButton=document.getElementById("use-mirrors-button");
+      var tileOrderInput=document.getElementById("tile-order-input");
+      var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
+      var mirrorAngleContainer=document.getElementById("mirror-angle-container");
+      
+      const TAU=2*Math.PI;
+      const PI=Math.PI;
+      const HPI=Math.PI/2;
+      const PHI=(Math.sqrt(5)+1)/2;
+      const ROOT2=Math.sqrt(2);
+      const ROOT3=Math.sqrt(3);
+      const HALFROOT3=Math.sqrt(3)/2;
+      var paused=false;
+      var frameSkip= 2 ;// TODO: what's the right value? (10 in hyp, 1 in snow?)
+      var fReqs=frameSkip;
+      var colorChangeSteps=0;
+      var keys=[];
+      var mousePos=new Vec2();
+      var mouseDown=false;
+      var height=100;// TODO: use this instead of canvas.height, similarly do for width (or delete this)
+      
+      
+      var mousePositions=[];//mouse locations as Vec2 for individual points
+      var movements=[];      //
+      var movementColors=[]; //
+      var movementSizes=[];  // TODO: make these 3 into an object array
+      var curMovement=-1;//index of which movement (in the movements array) is currently happening or which has last been finished
+      var globalScaling=0.4;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
+      var DSFGridScaling=0.85;//applies to generateDSFGrid
+      const minFramesSinceResize=10;//if the window is being constantly resized (slow dragging), resize the canvas every minFramesSinceResize frames
+      var framesSinceResize=minFramesSinceResize;
+      var resizeRequested=true;//has the window been resized while the canvas hasn't yet?
+      const mouseSlowingFactor=1.5;//0-infinity, sets how much mouse movement is smoothed out, see equation in mousemove event
+      
+      // var schlafliSymbol=[5, 4];
+      // var schlafliSymbol=[4, 5];
+      // var schlafliSymbol=[6, 4];
+      // var schlafliSymbol=[4, 6];
+      // var schlafliSymbol=[8, 3];
+      // var schlafliSymbol=[10, 3];
+      // var schlafliSymbol=[3, 8];
+      // var schlafliSymbol=[3, 27];
+      // var schlafliSymbol=[4, 4];
+      
+      // var schlafliSymbol=[7, 3];
+      // var schlafliSymbol=[3, 7];
+      // var schlafliSymbol=[5, 6];
+      var schlafliSymbol=[4, 6];
+      
+      var schlafliP=schlafliSymbol[0];
+      var schlafliQ=schlafliSymbol[1];
+      
+      
+      // var tileOrder= 4 ;
+      // var tilingTypeIndex= 1 ;
+      // var tileOrder= 6 ;
+      // var tilingTypeIndex= 2 ;
+      // var tileOrder= 3 ;
+      // var tilingTypeIndex= 3 ;
+      // var tileOrder= 12 ;
+      // var tilingTypeIndex= 1 ;
+      // var tileOrder= 5 ;
+      // var tileOrder= 7 ;
+      // var tilingTypeIndex= 5 ;
+      var tileOrder= schlafliP ;
+      var tilingTypeIndex= 4 ;
+      
+      tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
+      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
+      for (var i = 0; i < tilingTypes.length; i++) {
+        let t=tilingTypes[i];//the current tiling type
+        document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
+      }
+      document.getElementById("tiling-type-"+tilingTypeIndex).checked=true;
+      var tilingTypeName;
+      var initialDrawingReady=false;
+      
+      function invertUseMirrors() {
+        setUseMirrors(!useMirrors);
+      }
+      function setUseMirrors(u) {
+        if (useMirrors!==u) {
+          useMirrors=u;
+          if (useMirrors) {
+            useMirrorsButton.style.backgroundColor="#16f";
+            useMirrorsButton.innerHTML="Dihedral";
+            mirrorAngleContainer.style.opacity=1;
+          }
+          else {
+            useMirrorsButton.style.backgroundColor="#666";
+            useMirrorsButton.innerHTML="Chiral";
+            mirrorAngleContainer.style.opacity=0.5;
+          }
+          setInTileTransforms();
+          clearAll();
+          autoGenerateButtonClickability();
+        }
+      }
+      var useMirrors;//the tile is either mirror symmetrical (true) or chiral (false)
+      setUseMirrors(true);
+      
+      var curMirrorAngleInput=0;
+      var mirrorAngleInputOptionsArr=[
+      ["k=√3/x", function(x){ return ROOT3/x; }, "Slope=√3/", ""],
+      ["k=x", function(x){ return x; }, "Slope=", ""],
+      ["θ=x <i>rad</i>", function(x){ return Math.tan(x); }, "Angle=", "<i>rad</i>"],
+      ["θ=x°", function(x){ return Math.tan(x/360*TAU); }, "Angle=", "°"]
+      ]
+      function setCurMirrorAngleInput(curInput=0) {
+        curMirrorAngleInput=curInput;
+        for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {
+          document.getElementById("mirror-angle-number-input-container-"+i).style.display="none";
+          document.getElementById("mirror-angle-input-option-"+i).style.backgroundColor="#124";
+        }
+        document.getElementById("mirror-angle-number-input-container-"+curMirrorAngleInput).style.display="inline";
+        document.getElementById("mirror-angle-input-option-"+curMirrorAngleInput).style.backgroundColor="#237";
+        changeMirrorAngle();
+      }
+      for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {//add color select elements
+        // TODO: this is dumb
+        document.getElementById("mirror-angle-setting-container").innerHTML+="<span class='mirror-angle-input-option' id='mirror-angle-input-option-"+i+"' onclick='setCurMirrorAngleInput("+i+")'>"+mirrorAngleInputOptionsArr[i][0]+"</span>";
+        document.getElementById("mirror-angle-value-container").innerHTML+="<div class='mirror-angle-number-input-container' id='mirror-angle-number-input-container-"+i+"'>"+mirrorAngleInputOptionsArr[i][2]+"<input class='mirror-angle-number-input' id='mirror-angle-number-input-"+i+"' type='number' step='any' value='10000' onchange='changeMirrorAngle()'>"+mirrorAngleInputOptionsArr[i][3]+"<br>";// TODO: better default value
+      }
+      setCurMirrorAngleInput();
+      
+      function canAutoGenerateGeometrically() {// TODO: not finished, tested or used
+        // return initialDrawingReady && (
+        //   (tileOrder==6 && tilingTypeName=="hex") ||
+        //   (tileOrder==4 && tilingTypeName=="square")
+        // );
+        return initialDrawingReady && tileOrder==6 && tilingTypeName=="hex" && useMirrors;
+      }
+      function autoGenerateButtonClickability() {//update whether the tiling auto-generation button can be clicked or is greyed out
+        // let clickability=(initialDrawingReady && tileOrder==6 && tilingTypeName=="hex");
+        let clickability=canAutoGenerateGeometrically();
+        autoGenerateButton.disabled=!clickability;
+      }
+      
+      //variables from hyperbolic code
+      var P=[];//Polygons array
+        var V=[];//Vertices array
+        const radius=1;//has to be 1
+        var numPolys=0;
+        var numVerts=0;
+        document.getElementById("schlafliP").value=schlafliP;// TODO: objects instead of calling getElementByIds?
+        document.getElementById("schlafliQ").value=schlafliQ;
+        var numTakenVerts=0;
+        var lastClickTookPolygon=false;
+        var poincareEdgeLength;
+        var isEuclidean=false;
+        var hypPolyVertRadius=0.15;
+        var hypPolyEdgeWidth=0.03;
+        
+        function distortion(vec) {
+          return vec;//do nothing function
+          // return new Vec2(Math.sin(vec.x*HPI), Math.sin(vec.y*HPI));
+          // let dist=vec.len();
+          // return vec.mult( Math.sin(dist*HPI) /dist);
+          // return vec.mult( Math.asin(dist)/HPI /dist);
+        }
+    
 
     function wordPeriodLen(w) {
       let period=1;
@@ -733,74 +889,280 @@
         // }
       }
       this.drawWithSettings=function(settings) {
+        // let ctx=settings.context;
+        // ctx.lineWidth=1;
+        // ctx.strokeStyle=settings.strokeStyle;
+        // ctx.fillStyle=settings.fillStyle;
+        //
+        // let edgeVector=this.getEdgeVector();
+        // let maxDistFromCenter;
+        // if (settings.useDistFromCenter) {
+        //   maxDistFromCenter=this.getMaxDistFromCenter();
+        // }
+        // // console.log(maxDistFromCenter);
+        //
+        // // let segmentLength=1/maxDistFromCenter;
+        // const edgeAngleOffset=edgeVector.ang()+HPI;
+        // // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
+        // // let startPos=new Vec2();
+        // // switch (tileOrder) {
+        // //   case 6:
+        // //     startPos=new Vec2(ROOT3/2, 0.5);
+        // //     break;
+        // //   case 4:
+        // //     startPos=new Vec2(0.5, 0.5);
+        // //     break;
+        // //   case 3:
+        // //     startPos=new Vec2(0.5/ROOT3, 0.5);
+        // //     break;
+        // //   default:// TODO: maybe include other cases?
+        // //     startPos=new Vec2(-0.5, 0.5);
+        // // }
+        // // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+        // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+        // // TODO: i don't know why this works
+        // // set startPos - the point where the path begins drawing
+        // // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+        //
+        // const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
+        // // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
+        // // for (var ttr = 0; ttr < 1; ttr++) {
+        // for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
+        //   let transf=tilingTransforms[ttr];
+        //   //define the tiles' contact point as the beginning of the boundary
+        //   let curPos=startPos;
+        //
+        //   ctx.beginPath();
+        //   // ctx.moveTo(curScreenPos.x, curScreenPos.y);
+        //   let edgeWord=this.getEdgeWord();
+        //
+        //   for (var j = 0; j < tileOrder; j++) {//euclidean
+        //     for (var i = 0; i < edgeWord.length; i++) {
+        //       let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
+        //       curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
+        //
+        //       let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
+        //       let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+        //       // let curScreenPos=transf.applyTo(curPos.mult(1/edgeVector.len())).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+        //       // let curScreenPos=transf.applyTo(curPos.mult(1/maxDistFromCenter)).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//individual display
+        //       // let curScreenPos=transf.applyTo(curPos).mult(settings.DSFRelativeRadius/maxDistFromCenter).add(settings.pos).screen();//individual
+        //       ctx.lineTo(curScreenPos.x, curScreenPos.y);
+        //     }
+        //   }
+        //   ctx.closePath();
+        //   ctx.fill("evenodd");
+        //   ctx.stroke();
+        //   // ctx.stroke();//double for less jagged look
+        // }
+        // // //debug point at center of canvas
+        // // context.fillStyle="#f00";
+        // // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
+        //
+        //
+        // console.log("end of dsf drawing");
+        
+        // TODO: euclidean DSF drawing above, hyperbolic DSF below, gonna have to join them (or at least add an if(isEuclidean){} )
+        
+        
         let ctx=settings.context;
         ctx.lineWidth=1;
         ctx.strokeStyle=settings.strokeStyle;
         ctx.fillStyle=settings.fillStyle;
-
+        
         let edgeVector=this.getEdgeVector();
         let maxDistFromCenter;
         if (settings.useDistFromCenter) {
           maxDistFromCenter=this.getMaxDistFromCenter();
         }
         // console.log(maxDistFromCenter);
-
+        
         // let segmentLength=1/maxDistFromCenter;
-        const edgeAngleOffset=edgeVector.ang()+HPI;
-        // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
-        // let startPos=new Vec2();
-        // switch (tileOrder) {
-        //   case 6:
-        //     startPos=new Vec2(ROOT3/2, 0.5);
-        //     break;
-        //   case 4:
-        //     startPos=new Vec2(0.5, 0.5);
-        //     break;
-        //   case 3:
-        //     startPos=new Vec2(0.5/ROOT3, 0.5);
-        //     break;
-        //   default:// TODO: maybe include other cases?
-        //     startPos=new Vec2(-0.5, 0.5);
-        // }
-        // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-        const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+        const edgeAngleOffset=edgeVector.ang()+HPI;// TODO: hyperbolic
+        const segmentLength=0.98;
+        
+        // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
         // TODO: i don't know why this works
+        
+        const startPos=new Vec2();
         // set startPos - the point where the path begins drawing
-        // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-
+        // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
+        
         const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
         // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
         // for (var ttr = 0; ttr < 1; ttr++) {
+        
+        // for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
+        //   let transf=tilingTransforms[ttr];
+        //   //define the tiles' contact point as the beginning of the boundary
+        //   let curPos=startPos;
+        //
+        //   ctx.strokeStyle="magenta";
+        //   ctx.lineWidth=2;
+        //   ctx.beginPath();
+        //   let curScreenPos=transf.applyTo(curPos).add(settings.pos).screen();
+        //   ctx.moveTo(curScreenPos.x, curScreenPos.y);
+        //
+        //   // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
+        //   // pathPoincareEdge(curPosTransformed.x, curPosTransformed.y);
+        //
+        //   // let edgeWord=this.getBoundaryWord();
+        //   let edgeWord=this.getEdgeWord();
+        //   // let edgeWordLength=edgeWord.length;
+        //   // for (var j = 1; j < tileOrder; j++) {
+        //   //   for (var i = 0; i < edgeWordLength; i++) {
+        //   //     edgeWord.push(edgeWord[i]+j);
+        //   //   }
+        //   // }
+        //   console.log(edgeWord);
+        //   let runningLen=0;
+        //   let runningAng=0;
+        //   let innerTurnAngBonus=0;
+        //   let lastPosTransformed=new Vec2();
+        //   let curPosTransformed=new Vec2();
+        //
+        //   // for (var j = 0; j < tileOrder; j++) {
+        //     for (var i = 0; i < edgeWord.length; i++) {
+        //       // let turnAng= i==0 ? 0 : (edgeWord[i]-edgeWord[i-1])*TAU/tileOrder+edgeAngleOffset;
+        //       let turnAng=0;
+        //       let innerTurnAng=0;
+        //       if (i==0) {//if this is the first segment, certain things (like getting the previous segment) won't work for it
+        //
+        //       }
+        //       else {
+        //         turnAng=TAU * (edgeWord[i]-edgeWord[i-1])/tileOrder;//external turning angle between the previous segment's ending direction and the current segment's beginning direction
+        //         innerTurnAng=PI-turnAng;//same an turnAng, but an internal angle
+        //       }
+        //       let innerTurnAngWithBonus=innerTurnAngBonus+innerTurnAng;
+        //
+        //
+        //       // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+        //
+        //       // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+        //       innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+        //       let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+        //       let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+        //
+        //       runningAng+=runningAngChange;
+        //
+        //       runningLen=newRunningLen;
+        //       curPos=Vec2FromAngleAndLength(runningAng, hypToEuclDist(runningLen));
+        //       // console.log(curPos);
+        //
+        //       // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
+        //       let scaledCurPos=curPos;
+        //       // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
+        //
+        //       curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();//in tessellation
+        //       curPosTransformed=transf.applyTo(scaledCurPos);//in tessellation
+        //
+        //       ctx.lineTo(curScreenPos.x, curScreenPos.y);
+        //
+        //       // console.log(lastPosTransformed, curPosTransformed);
+        //
+        //       // pathPoincareEdge(lastPosTransformed, curPosTransformed);
+        //
+        //       lastPosTransformed=curPosTransformed;
+        //     }
+        //   // }
+        //   // ctx.closePath();
+        //   // console.log(ctx);
+        //   ctx.fill("evenodd");
+        //   ctx.stroke();
+        // }
+        
         for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
           let transf=tilingTransforms[ttr];
           //define the tiles' contact point as the beginning of the boundary
           let curPos=startPos;
-
+        
+          ctx.strokeStyle=settings.strokeStyle;// TODO: unneeded after debugging
+          ctx.lineWidth=1;
+        
           ctx.beginPath();
-          // ctx.moveTo(curScreenPos.x, curScreenPos.y);
+          let curScreenPos=transf.applyTo(curPos).add(settings.pos).screen();
+          ctx.moveTo(curScreenPos.x, curScreenPos.y);
+          
+          // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
+          // pathPoincareEdge(curPosTransformed.x, curPosTransformed.y);
+          
+          // let edgeWord=this.getBoundaryWord();
           let edgeWord=this.getEdgeWord();
-
-          for (var j = 0; j < tileOrder; j++) {
-            for (var i = 0; i < edgeWord.length; i++) {
-              let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
-              // curPos=new Vec2(curPos.x+segmentLength*Math.cos(ang), curPos.y-segmentLength*Math.sin(ang));
-              curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
-              let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
-              let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
-              // let curScreenPos=transf.applyTo(curPos.mult(1/edgeVector.len())).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
-              // let curScreenPos=transf.applyTo(curPos.mult(1/maxDistFromCenter)).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//individual display
-              // let curScreenPos=transf.applyTo(curPos).mult(settings.DSFRelativeRadius/maxDistFromCenter).add(settings.pos).screen();//individual
-              ctx.lineTo(curScreenPos.x, curScreenPos.y);
+          let edgeWordLength=edgeWord.length;
+          for (var j = 1; j < tileOrder; j++) {
+            for (var i = 0; i < edgeWordLength; i++) {
+              edgeWord.push(edgeWord[i]+j);
             }
           }
-          ctx.closePath();
+          console.log(edgeWord);
+          let runningLen=0;
+          let runningAng=0;
+          let innerTurnAngBonus=0;
+          let lastPosTransformed=transf.applyTo(new Vec2());
+          let curPosTransformed=new Vec2();
+        
+          // for (var j = 0; j < tileOrder; j++) {
+            for (var i = 0; i < edgeWord.length; i++) {
+              console.log("%c"+i, "font-weight:bold; font-size: 160%");
+              // let turnAng= i==0 ? 0 : (edgeWord[i]-edgeWord[i-1])*TAU/tileOrder+edgeAngleOffset;
+              let turnAng=0;
+              let innerTurnAng=0;
+              if (i==0) {//if this is the first segment, certain things (like getting the previous segment) won't work for it
+                
+              }
+              else {
+                turnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//external turning angle between the previous segment's ending direction and the current segment's beginning direction
+                innerTurnAng=PI-turnAng;//same an turnAng, but an internal angle
+                innerTurnAng=turnAng;//same an turnAng, but an internal angle // TODO: same
+                // console.log("turnAng", turnAng, "innerTurnAng", innerTurnAng);
+              }
+              // let innerTurnAngWithBonus=innerTurnAngBonus+innerTurnAng;
+              // console.log(innerTurnAngWithBonus,"=",innerTurnAngBonus,"+",innerTurnAng);
+              let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+              // if (innerTurnAngWithBonus>PI) innerTurnAngWithBonus-=TAU;// TODO: maybe generalize? (can it be wrong in other ways, i.e., >3*PI or <-PI)
+              console.log(innerTurnAngWithBonus,"=",innerTurnAng,"-",innerTurnAngBonus);
+              console.log("turnAng", turnAng, "innerTurnAng", innerTurnAng, "innerTurnAngWithBonus", innerTurnAngWithBonus);
+              
+              // console.log(turnAng);
+              
+              // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+              
+              
+              // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+              innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+              let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              
+              console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
+              console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+              
+              
+              runningAng+=runningAngChange;
+              runningLen=newRunningLen;
+              console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
+              curPos=Vec2FromAngleAndHyperbolicLength(runningAng, runningLen);
+              // console.log(curPos);
+              
+              // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
+              let scaledCurPos=curPos;
+              // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
+              
+              // curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();
+              curPosTransformed=transf.applyTo(scaledCurPos);
+              
+              // ctx.lineTo(curScreenPos.x, curScreenPos.y);
+              
+              // console.log(lastPosTransformed, curPosTransformed);
+              // pathPoincareEdge(lastPosTransformed, curPosTransformed);
+              pathPoincareEdge(curPosTransformed, lastPosTransformed);// TODO: whyyyyy??? should i refactor this call, the function, and other calls?
+              
+              lastPosTransformed=curPosTransformed;
+            }
+          // }
+          // ctx.closePath();
+          // console.log(ctx);
           ctx.fill("evenodd");
           ctx.stroke();
-          // ctx.stroke();//double for less jagged look
         }
-        // //debug point at center of canvas
-        // context.fillStyle="#f00";
-        // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
       }
       this.drawToWholeScreen=function() {
         let settings=new DSFDrawingSettings();
@@ -873,6 +1235,11 @@
     // var curDSF=new DSF([1,0,1,0], [1]);
     // var curDSF=new DSF([1,0,1,0,5,0,5,4,5,4], [5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1]);
     // var curDSF=new DSF([5,0,5,0,1,0,1,2,1,2,1,0,1,0,5,0,5,4,5,4,5,0,5,0,1,0,1], [2,1,2,1,0,1,0,5,0,5]);
+    // var curDSF=new DSF([0], []);
+    
+    // var curDSF=new DSF([0,0,2,3], []);
+    // var curDSF=new DSF([0,0,2], []);// TODO: this is still broken (i don't expect i'll fix it)
+    // var curDSF=new DSF([0,1,0,1,2,1], []);
 
     function logCurDSFInfo() {
       console.log("%c"+curDSF.w0+" and "+curDSF.w1, "font-size: 180%; color: #9f6; padding-top:2%; padding-bottom: 2%");
@@ -886,12 +1253,10 @@
       console.log("%c                                                   ", "display: inline-block; border: 2px solid lightgray; font-size:1px");
     }
 
-    // regular polygons:
     // var curDSF=new DSF([], [0]);
     // curDSF=curDSF.extend0();
     var curDSF=new DSF([0], []);
     curDSF=curDSF.extend1();
-
     // curDSF=curDSF.swap1();// TODO: generation seems broken
     // curDSF=curDSF.swap0();
     // curDSF=curDSF.extend0();
@@ -903,7 +1268,6 @@
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.extend0();
     // curDSF=curDSF.extend1();
-
     // logCurDSFInfo();
     // console.log("%cresult", "font-size:200%; padding:1%");
     // console.log(curDSF.w0, curDSF.w1);
@@ -994,180 +1358,6 @@
       // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
     }
 
-
-    var canvas=document.getElementById("canvas");
-      var context=canvas.getContext("2d");
-
-      var changingCanvas=document.getElementById("changing-canvas");
-      var changingContext=changingCanvas.getContext("2d");
-      var dropBtn=document.getElementById("drop-btn");
-      var useMirrorsButton=document.getElementById("use-mirrors-button");
-      var tileOrderInput=document.getElementById("tile-order-input");
-      var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
-      var mirrorAngleContainer=document.getElementById("mirror-angle-container");
-
-      const TAU=2*Math.PI;
-        const PI=Math.PI;
-        const HPI=Math.PI/2;
-        const PHI=(Math.sqrt(5)+1)/2;
-        const ROOT2=Math.sqrt(2);
-        const ROOT3=Math.sqrt(3);
-        const HALFROOT3=Math.sqrt(3)/2;
-      var paused=false;
-      var frameSkip=1;// TODO: what's the right value? (10 in hyp, 1 in snow?)
-      var fReqs=frameSkip;
-      var colorChangeSteps=0;
-      var keys=[];
-      var mousePos=new Vec2();
-      var mouseDown=false;
-      var height=100;// TODO: use this instead of canvas.height, similarly do for width (or delete this)
-
-
-      var mousePositions=[];//mouse locations as Vec2 for individual points
-      var movements=[];      //
-      var movementColors=[]; //
-      var movementSizes=[];  // TODO: make these 3 into an object array
-      var curMovement=-1;//index of which movement (in the movements array) is currently happening or which has last been finished
-      var globalScaling=0.4;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
-      var DSFGridScaling=0.85;//applies to generateDSFGrid
-      const minFramesSinceResize=10;//if the window is being constantly resized (slow dragging), resize the canvas every minFramesSinceResize frames
-      var framesSinceResize=minFramesSinceResize;
-      var resizeRequested=true;//has the window been resized while the canvas hasn't yet?
-      const mouseSlowingFactor=1.5;//0-infinity, how much mouse movement is smoothed out, see equation in mousemove event
-
-      // var schlafliSymbol=[5, 4];
-      // var schlafliSymbol=[4, 5];
-      // var schlafliSymbol=[6, 4];
-      // var schlafliSymbol=[4, 6];
-      // var schlafliSymbol=[8, 3];
-      // var schlafliSymbol=[10, 3];
-      // var schlafliSymbol=[3, 8];
-      // var schlafliSymbol=[3, 27];
-      // var schlafliSymbol=[4, 4];
-      
-      // var schlafliSymbol=[7, 3];
-      // var schlafliSymbol=[3, 7];
-      // var schlafliSymbol=[5, 6];
-      var schlafliSymbol=[4, 6];
-      
-      var schlafliP=schlafliSymbol[0];
-      var schlafliQ=schlafliSymbol[1];
-      
-      
-      // var tileOrder= 4 ;
-      // var tilingTypeIndex= 1 ;
-      // var tileOrder= 6 ;
-      // var tilingTypeIndex= 2 ;
-      // var tileOrder= 3 ;
-      // var tilingTypeIndex= 3 ;
-      // var tileOrder= 12 ;
-      // var tilingTypeIndex= 1 ;
-      // var tileOrder= 5 ;
-      // var tileOrder= 7 ;
-      // var tilingTypeIndex= 5 ;
-      var tileOrder= schlafliP ;
-      var tilingTypeIndex= 5 ;
-
-      tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
-      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
-      for (var i = 0; i < tilingTypes.length; i++) {
-        let t=tilingTypes[i];//the current tiling type
-        document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
-      }
-      document.getElementById("tiling-type-"+tilingTypeIndex).checked=true;
-      var tilingTypeName;
-      var initialDrawingReady=false;
-
-      function invertUseMirrors() {
-        setUseMirrors(!useMirrors);
-      }
-      function setUseMirrors(u) {
-        if (useMirrors!==u) {
-          useMirrors=u;
-          if (useMirrors) {
-            useMirrorsButton.style.backgroundColor="#16f";
-            useMirrorsButton.innerHTML="Dihedral";
-            mirrorAngleContainer.style.opacity=1;
-          }
-          else {
-            useMirrorsButton.style.backgroundColor="#666";
-            useMirrorsButton.innerHTML="Chiral";
-            mirrorAngleContainer.style.opacity=0.5;
-          }
-          setInTileTransforms();
-          clearAll();
-          autoGenerateButtonClickability();
-        }
-      }
-      var useMirrors;//the tile is either mirror symmetrical (true) or chiral (false)
-      setUseMirrors(true);
-
-      var curMirrorAngleInput=0;
-      var mirrorAngleInputOptionsArr=[
-        ["k=√3/x", function(x){ return ROOT3/x; }, "Slope=√3/", ""],
-        ["k=x", function(x){ return x; }, "Slope=", ""],
-        ["θ=x <i>rad</i>", function(x){ return Math.tan(x); }, "Angle=", "<i>rad</i>"],
-        ["θ=x°", function(x){ return Math.tan(x/360*TAU); }, "Angle=", "°"]
-      ]
-      function setCurMirrorAngleInput(curInput=0) {
-        curMirrorAngleInput=curInput;
-        for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {
-          document.getElementById("mirror-angle-number-input-container-"+i).style.display="none";
-          document.getElementById("mirror-angle-input-option-"+i).style.backgroundColor="#124";
-        }
-        document.getElementById("mirror-angle-number-input-container-"+curMirrorAngleInput).style.display="inline";
-        document.getElementById("mirror-angle-input-option-"+curMirrorAngleInput).style.backgroundColor="#237";
-        changeMirrorAngle();
-      }
-      for (var i = 0; i < mirrorAngleInputOptionsArr.length; i++) {//add color select elements
-        // TODO: this is dumb
-        document.getElementById("mirror-angle-setting-container").innerHTML+="<span class='mirror-angle-input-option' id='mirror-angle-input-option-"+i+"' onclick='setCurMirrorAngleInput("+i+")'>"+mirrorAngleInputOptionsArr[i][0]+"</span>";
-        document.getElementById("mirror-angle-value-container").innerHTML+="<div class='mirror-angle-number-input-container' id='mirror-angle-number-input-container-"+i+"'>"+mirrorAngleInputOptionsArr[i][2]+"<input class='mirror-angle-number-input' id='mirror-angle-number-input-"+i+"' type='number' step='any' value='10000' onchange='changeMirrorAngle()'>"+mirrorAngleInputOptionsArr[i][3]+"<br>";// TODO: better default value
-      }
-      setCurMirrorAngleInput();
-
-      function canAutoGenerateGeometrically() {// TODO: not finished, tested or used
-        // return initialDrawingReady && (
-        //   (tileOrder==6 && tilingTypeName=="hex") ||
-        //   (tileOrder==4 && tilingTypeName=="square")
-        // );
-        return initialDrawingReady && tileOrder==6 && tilingTypeName=="hex" && useMirrors;
-      }
-      function autoGenerateButtonClickability() {//update whether the tiling auto-generation button can be clicked or is greyed out
-        // let clickability=(initialDrawingReady && tileOrder==6 && tilingTypeName=="hex");
-        let clickability=canAutoGenerateGeometrically();
-        autoGenerateButton.disabled=!clickability;
-      }
-
-
-      
-      var P=[];//Polygons array
-      var V=[];//Vertices array
-      const radius=1;//has to be 1
-      var numPlayers=2;
-      var curPlayer=1;
-      var numPolys=0;
-      var numVerts=0;
-      var takenPolys=[];//what polygons have been taken by one player
-      document.getElementById("schlafliP").value=schlafliP;
-      document.getElementById("schlafliQ").value=schlafliQ;
-      document.getElementById("numPlayers").value=numPlayers;
-      var numTakenVerts=0;
-      var lastClickTookPolygon=false;
-      var poincareEdgeLength;
-      var isEuclidean=false;
-      var hypPolyVertRadius=0.15;
-      var hypPolyEdgeWidth=0.03;
-      
-      function distortion(vec) {
-        return vec;//do nothing function
-        // return new Vec2(Math.sin(vec.x*HPI), Math.sin(vec.y*HPI));
-        // let dist=vec.len();
-        // return vec.mult( Math.sin(dist*HPI) /dist);
-        // return vec.mult( Math.asin(dist)/HPI /dist);
-      }
-      
-      
 
     ;//COLORS
       function Color(r=255, g=0, b=255, a=1) {
@@ -1436,6 +1626,13 @@
         return new Vec2(this.x*Math.cos(a)-this.y*Math.sin(a), this.x*Math.sin(a)+this.y*Math.cos(a));
       }
     }
+    function Vec2FromAngleAndLength(ang, len=1) {
+      return new Vec2(len*Math.cos(ang), len*Math.sin(ang));
+    }
+    function Vec2FromAngleAndHyperbolicLength(ang, len=1) {
+      len=hypToEuclDist(len);
+      return new Vec2(len*Math.cos(ang), len*Math.sin(ang));
+    }
     // function Vec3(x=0, y=0, z=0) {
     //   if (typeof x=="number") {
     //     this.x=x;
@@ -1556,7 +1753,7 @@
       return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), v.x, v.y);
     }
     
-    function HyperbolicTransform(shiftDist=0, shiftAng=0, rotateAng=0) {//class for a 2D affine transformation
+    function HyperbolicTransform(shiftDist=0, shiftAng=0, rotateAng=0) {//2D hyperbolic isometry, with rotation by rotateAng and then translation that moves the origin to the polar coordinates {shiftAng, shiftDist} // TODO: shiftAng before shiftDist
       this.shiftDist=shiftDist;
       this.shiftAng=shiftAng;
       this.rotateAng=rotateAng;
@@ -1596,6 +1793,31 @@
         // copy.jHatY*=s;
         return copy;
       }
+    }
+    function hyperbolicSASGetAngleAtFirstSide(a, C, b) {// TODO: rename
+      // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//these functions are not defined
+      // return Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));//this breaks in some edge cases
+      let res=Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));
+      // return (res+PI)%PI; // TODO: got this while messing around on desmos
+      // if (C%TAU>PI) {
+      //   res+=PI;
+      // }
+      // return (res+PI)%PI; // TODO: got this while messing around on desmos
+      if (res<0 ^ mod(C, TAU)>PI) {
+        res+=PI;
+      }; // TODO: got this while messing around on desmos
+      // console.log("res:",res);
+      return res;
+    }
+    function hyperbolicSASGetThirdEdge(a, C, b) {// TODO: rename
+      // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//these functions are not defined
+      return Math.acosh(Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C));
+    }
+    function hypToEuclDist(rho) {// TODO: attribute to Poincare’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
+      return Math.tanh(rho/2);
+    }
+    function euclToHypDist(r) {// TODO: same attribution as hypToEuclDist
+      return 2*Math.atanh(r);
     }
 
     function Polygon () {// TODO: classes with push, not weird index saving
@@ -1664,19 +1886,10 @@
         //   context.fillStyle=BGColor.rgb();
         //   context.fill();
 
-        if (this.takenByNumber!=0) {// TODO: repetetive
-          context.beginPath();
-          // context.arc(screenPos.x, screenPos.y, 0.85*this.radius*height/2, 0, TAU);
-          context.arc(screenPos.x, screenPos.y, this.radius*height/2+0.5, 0, TAU);
-          context.fillStyle=takeColors[this.takenByNumber].vertex;
-          context.fill();
-        }
-        else {
-          context.beginPath();
-          context.arc(screenPos.x, screenPos.y, this.radius*height/2, 0, TAU);
-          context.fillStyle=hypPolyVertDefaultColor;
-          context.fill();
-        }
+        context.beginPath();
+        context.arc(screenPos.x, screenPos.y, this.radius*height/2, 0, TAU);
+        context.fillStyle=hypPolyVertDefaultColor;
+        context.fill();
       }
     };
 
@@ -1724,33 +1937,35 @@
       ctx.fill();
     }
 
-    function pathPoincareEdge(v1, v2) {
+    function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       // if (true) {//arc edges
+        // console.log(v1, v2);
         if (!isEuclidean) {
           var scaleM=((radius/v1.len())**2 + 1)/2;
           var scaleN=((radius/v2.len())**2 + 1)/2;
           var M=v1.mult(scaleM);
           var N=v2.mult(scaleN);
-          // var centerY=(M.x*(M.x-N.x-N.y*N.y/N.x)+M.y*M.y)/(M.y-N.y*M.x/N.x);// TODO: optimize?
+          // var centerY=(M.x*(M.x-N.x-N.y*N.y/N.x)+M.y*M.y)/(M.y-N.y*M.x/N.x);
           let centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);// TODO: is this safer???
           var prevC=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
           var newR=(prevC.sub(v1)).len();
           // console.log(newR);
         }
-        if (isEuclidean || newR>=10000) {// TODO: different kind of boundary?
+        if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
           var v1Screen=v1.screen();
           var v2Screen=v2.screen();
-          // context.moveTo(v1Screen.x, v1Screen.y);
-          // context.lineTo(v2Screen.x, v2Screen.y);
-          // context.moveTo(v2Screen.x, v2Screen.y);
-          context.lineTo(v1Screen.x, v1Screen.y);
+          // ctx.moveTo(v1Screen.x, v1Screen.y);
+          // ctx.lineTo(v2Screen.x, v2Screen.y);
+          // ctx.moveTo(v2Screen.x, v2Screen.y);
+          ctx.lineTo(v1Screen.x, v1Screen.y);
         }
         else {
+          // console.log(newR);
           var prevCScreen=prevC.screen();
           var ang1=-v1.sub(prevC).ang();
           var ang2=-v2.sub(prevC).ang();
           var widd=(ang1-ang2+TAU)%TAU>PI;
-          context.arc(prevCScreen.x, prevCScreen.y, newR*height/2, ang2, ang1, widd);
+          ctx.arc(prevCScreen.x, prevCScreen.y, newR*height/2, ang2, ang1, widd);
         }
       // }
       // else {//straight edges
@@ -1765,6 +1980,7 @@
       for (var j=0; j<vertArr.length; j++) {//all edges
         var v1=V[vertArr[(j+1)%vertArr.length]].pos;
         var v2=V[vertArr[j]].pos;
+        // console.log(j, v1, v2);
         pathPoincareEdge(v1, v2);
         avgVertPos=avgVertPos.add(v1);
       }
@@ -1792,27 +2008,7 @@
       // context.fill();
       context.stroke();
     }
-    function drawTakenPoly(vertArr, player, justTaken=false) {
-      var pathData=pathPoincarePoly(vertArr);
-      // var avgVertPos=pathData;
-      // var color=new Color(randRange(30, 256), randRange(30, 256), randRange(30, 256));
-      // var color=useGradient.get(rand());
-      // var color=useGradient.get(rand()).grayen(0.2).modify(50);
-      // context.lineWidth=0.06*(1-pathData.avgVertPos.sqLen())*height/2;
-      context.lineWidth=0.02*height/2;
-      // context.strokeStyle="rgb(0, 0, 0)";
-      // context.strokeStyle="rgb(220, 220, 220)";
-      context.strokeStyle=takeColors[player].edge;
-      // context.lineWidth=1;
-      // context.strokeStyle=color.rgb();
-      if (justTaken) {//fill if taken in the last turn
-        context.fillStyle=takeColors[player].face;
-        // context.fillStyle=color.rgb();
-        context.fill();
-      }
-      context.stroke();
-    }
-    function drawAllVerts() {
+    function drawAllVerts() {//draw circles on vertices of the hyperbolic grid
       for (var i=0; i<numVerts; i++) {//all polygons
         V[i].draw();
       }
@@ -2039,8 +2235,9 @@
         case "hypTest":
           useHyperbolicTilingTransforms=true;
           tilingTransforms=[
-            new HyperbolicTransform(),
-            new HyperbolicTransform(1, 1, 0)
+            // new HyperbolicTransform(),
+            new HyperbolicTransform(0,0,0.01),
+            // new HyperbolicTransform(1, 1, 0)
           ]
           break;
         case "regular using schlafli":// TODO: generalize
@@ -2054,7 +2251,7 @@
           
           //convert euclidean distance to hyperbolic distance
           // centerToVertex=Math.acosh(1+ (2*centerToVertex**2) / (1-centerToVertex**2) );// TODO: attribute to https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model (if used)
-          centerToVertex=2*Math.atanh(centerToVertex);//same as previous method // TODO: attribute to Poincar´e’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
+          centerToVertex=2*Math.atanh(centerToVertex);//same as previous method // TODO: attribute to Poincare’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
           // console.log("to hyp",centerToVertex);
           
           //i need the distance to the edge midpoint, not to the vertex
@@ -2189,6 +2386,7 @@
           // context.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).lighten(0.2).rgb();
           // ctx.fillStyle= (sX==0 && sY==0) ? fillColor.rgb() : fillColor.mult(0.6).rgb();
           ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.mult(0.6).rgb();
+          // console.log(ctx.fillStyle);
           // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : colorLerp(fillColorWithErase, ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1), 0.3).rgb();
           // ctx.fillStyle= (sh==0) ? fillColorWithErase.rgb() : fillColorWithErase.multColor(ColorFromHSL(tilingTransforms[sh].ang()/TAU, 1, 0.5, 1)).rgb();
           // ctx.fillStyle=fillColorWithErase.rgb();
@@ -2207,7 +2405,7 @@
         }
       }
     }
-    function drawAllPoints() {
+    function drawAllPoints() {//draw everything that the user has drawn
       context.clearRect(0, 0, canvas.width, canvas.height);
       drawFromCurDSF();// TODO: there's probably a better place to put this
       let lastPosNum=0;
@@ -2225,41 +2423,10 @@
       fillColorWithErase=savedColor;
       drawSize=savedSize;
     }
-
-    function drawFromCurDSF() {
+    function drawFromCurDSF() {//draw the current DSF using .drawToWholeScreen()
       // TODO:
       curDSF.drawToWholeScreen();
       // generateDSFGrid();
-    }
-
-    function update() {
-      if (!paused) {
-        if (fReqs>=frameSkip) {
-          changingContext.clearRect(0, 0, canvas.width, canvas.height);
-          if (mouseDown) {
-            // fReqs-=frameSkip; // TODO: why was this here?
-            fReqs=0;
-            // console.log(fReqs);
-            // for (var i = 0; i < 20; i++) {
-            //   if (true) {//do calculations
-            //     curPoint=curPoint.add(new Vec2(rand0(maxStep), rand0(maxStep))).mult(distFactor);
-            //   }
-            //   draw();// TODO: this commented block could be fixed, but is it useful?
-            //   colorChangeSteps++;
-            // }
-            var curPoint=new Vec2((mousePos.x*2-canvas.width)/canvas.height, 1-mousePos.y*2/canvas.height);
-            mousePositions.push(curPoint);
-            drawPointAtPosition(curPoint);
-            colorChangeSteps++;
-          }
-          else {
-            var curPoint=new Vec2((mousePos.x*2-canvas.width)/canvas.height, 1-mousePos.y*2/canvas.height);
-            drawPointAtPosition(curPoint, changingContext);
-          }
-        }
-        fReqs++;
-        window.requestAnimationFrame(update);
-      }
     }
 
     function drawHyperbolicGrid() {// TODO: jankiness could be lessened with homogenous coordinates
@@ -2272,7 +2439,7 @@
         context.arc(canvas.width/2, canvas.height/2, canvas.height/2, 0, TAU);
         context.stroke();
       }
-
+      
       if (true) {//Draw edges for each polygon
         for (var i=numPolys-1; i>=0; i--) {//all polygons (reverse order)
           // for (var i=0; i<numPolys; i++) {//all polygons
@@ -2286,37 +2453,93 @@
       }
       drawAllVerts();
     }
-    // function update() {// TODO: do i need this? (from hyp)
-    //   if (!paused) {
-    //     if (fReqs>=frameSkip) {
-    //       fReqs-=frameSkip;
-    //       drawHyperbolicGrid();
-    //     }
-    //     fReqs++;
-    //     // window.requestAnimationFrame(update);
-    //   }
-    // }
+
+    function update() {
+      if (!paused) {
+        if (fReqs>=frameSkip) {
+          changingContext.clearRect(0, 0, canvas.width, canvas.height);
+          
+          // let ctx=changingContext;
+          // ctx.beginPath();
+          // // ctx.fillStyle="#f0f";
+          // ctx.strokeStyle="#f0f";
+          // ctx.lineWidth=2;
+          // let p1Ang=0; let p1Len=0;
+          // let p2Ang=0; let p2Len=2;
+          // // let p3Ang=2; let p3Len=1;
+          // let a=p2Len;
+          // let C=colorChangeSteps/20-2*TAU;
+          // let b=2;
+          //
+          // let p3Ang=hyperbolicSASGetAngleAtFirstSide(a, C, b);
+          // // console.log(p3Ang);
+          // // if (p3Ang<0) {
+          // //   p3Ang+=PI;
+          // // }
+          // // let p3Ang=1;
+          // let p3Len=hyperbolicSASGetThirdEdge(a, C, b);
+          // // let p3Len=1;
+          //
+          // let p1Vec=Vec2FromAngleAndHyperbolicLength(p1Ang, p1Len);
+          // let p2Vec=Vec2FromAngleAndHyperbolicLength(p2Ang, p2Len);
+          // let p3Vec=Vec2FromAngleAndHyperbolicLength(p3Ang, p3Len);
+          // let p1Screen=p1Vec.screen();
+          // // let p2Screen=p2Vec.screen();
+          // // let p3Screen=p3Vec.screen();
+          // ctx.moveTo(p1Screen.x, p1Screen.y);
+          // pathPoincareEdge(p2Vec, p1Vec, ctx);
+          // pathPoincareEdge(p3Vec, p2Vec, ctx);
+          // pathPoincareEdge(p1Vec, p3Vec, ctx);
+          // ctx.stroke();
+          
+          let curMousePos=mousePos.unscreen();//mouse position, no longer in screen coordinates
+          if (mouseDown) {
+            // fReqs=0;
+            // console.log(fReqs);
+            
+            // for (var i = 0; i < 20; i++) {
+            //   if (true) {//do calculations
+            //     curMousePos=curMousePos.add(new Vec2(rand0(maxStep), rand0(maxStep))).mult(distFactor);
+            //   }
+            //   draw();// TODO: this commented block could be fixed, but is it useful? (btw draw probably needs to be outside the for)
+            //   colorChangeSteps++;
+            // }
+            
+            mousePositions.push(curMousePos);
+            drawPointAtPosition(curMousePos);
+            // colorChangeSteps++;
+          }
+          else {
+            drawPointAtPosition(curMousePos, changingContext);
+          }
+          
+          colorChangeSteps++;
+          fReqs-=frameSkip; // TODO: i think this will work
+        }
+        fReqs++;
+        window.requestAnimationFrame(update);
+      }
+    }
+
+    
     function restart() {
       let newSchlafliSymbol=[parseInt(document.getElementById("schlafliP").value), parseInt(document.getElementById("schlafliQ").value)];
-      let newNumPlayers=parseInt(document.getElementById("numPlayers").value);
-      if //make sure input values are reasonable, if so, change variables accordingly // TODO: maybe unnecessary (better to use computation measurements?)
+      if //make sure input values are reasonable, if so, change variables accordingly
         (
           newSchlafliSymbol[0]>=3 && newSchlafliSymbol[0]<=30
           && newSchlafliSymbol[1]>=3 && newSchlafliSymbol[1]<=30
-          && newNumPlayers>=1 && newNumPlayers<=10 &&
-          (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
+          && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
         )
-        {// TODO: arbitrary limits (particularly upper ones)
+        {// TODO: arbitrary limits (particularly upper ones) // TODO: allow spherical too!
           document.getElementById("schlafliInputContainer").style.backgroundColor="";
           schlafliSymbol=newSchlafliSymbol;
           schlafliP=schlafliSymbol[0];
           schlafliQ=schlafliSymbol[1];
-          numPlayers=newNumPlayers;
         }
         else {
           document.getElementById("schlafliInputContainer").style.backgroundColor="rgb(240, 90, 90)";
         }
-      curPlayer=1; updateCurPlayerMarkerColor();
+      
       if (true){// INITIAL object definition (first polygon and vertices with positions)
         P=[new Polygon()];//Polygons array
         V=[];//Vertices array
@@ -2688,27 +2911,13 @@
       // console.log("numVerts", numVerts);
       // console.log("numPolys", numPolys);
 
-      numTakenVerts=0;
-      document.getElementById("numTakenVerts").innerHTML=numTakenVerts;
-      document.getElementById("numVerts").innerHTML=numVerts;
-      takenPolys=[];//what polygons have been taken by one player
-      for (var i = 1; i < numPlayers+1; i++) {
-        takenPolys[i]=[];
-      }
-      let scoreHTML="";
-      for (var i = 1; i < numPlayers+1; i++) {
-        scoreHTML+='<div><span class="noSelect" style="color: '+takeColors[i].vertex+'">⬤ </span><span id="score-display'+i+'">0</span></div>'
-      }
-      document.getElementById("scoreContainer").innerHTML=scoreHTML;
-      lastClickTookPolygon=false;
-
-      drawHyperbolicGrid();
+      // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
     }
     function clearAll() {
       context.clearRect(0, 0, canvas.width, canvas.height);
       if (initialDrawingReady) {
-        drawFromCurDSF();// TODO: probably a better place for this?
-        drawHyperbolicGrid();
+        // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
+        // drawFromCurDSF();// TODO: probably a better place for this?
       }
       mousePositions=[];
       movements=[];
@@ -2735,14 +2944,16 @@
       height=canvas.height=changingCanvas.height=window.innerHeight;
       context.lineJoin="round";// TODO: probably not needed
       context.lineCap="round";
-      drawHyperbolicGrid();
-      drawAllPoints();
+      // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
+      // drawAllPoints();// TODO: turn on
     }
+    resizeWithWait();
     initialDrawingReady=true;
     autoGenerateButtonClickability();
-    resizeWithWait();
     restart();
     update();
+    
+    drawFromCurDSF();// TODO: better place for this
     // drawHyperbolicGrid();
 
 
@@ -2786,374 +2997,6 @@
       curMovement++;
     }
     changingCanvas.onmouseup = mouseUp;
-
-    // canvas.addEventListener("click",function(){
-
-    // changingCanvas.addEventListener("click",function(){// TODO: something with this mess
-    //   let mouseCoords=new Vec2(event.clientX, event.clientY).unscreen();
-    //   let v1;
-    //   var v1Index=0;
-    //   let vertSelectSuccess=false;
-    //   for (; v1Index < numVerts; v1Index++) {
-    //     v1=V[v1Index];
-    //     if (v1.drawPos.sub(mouseCoords).len()<v1.radius && v1.takenByNumber==0) {
-    //       v1.takenByNumber=curPlayer;
-    //       v1.draw();
-    //       vertSelectSuccess=true;
-    //       break;
-    //     }
-    //   }
-    //   let prevNumTakenPolys=takenPolys[curPlayer].length;
-    //   if (vertSelectSuccess) {
-    //     if (lastClickTookPolygon) {
-    //       draw();
-    //     }
-    //     if (isEuclidean) {
-    //       for (var v2Index = 0; v2Index < numVerts; v2Index++) {
-    //         let v2=V[v2Index];
-    //         if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
-    //
-    //         let edgeLen1=v1.pos.dist(v2.pos);
-    //
-    //         // context.fillStyle="orange";
-    //         // drawSquare(endpointU);
-    //         // drawSquare(endpointV);
-    //
-    //         for (var v3Index = 0; v3Index < numVerts; v3Index++) {
-    //           let v3=V[v3Index];
-    //
-    //           /* reasons v3 might be invalid */
-    //           if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
-    //           let edgeLen2=v2.pos.dist(v3.pos); //skip v3 because its distance to v2 is different than v2 to v1
-    //             if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
-    //           let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
-    //             let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
-    //             if (polygonOrientation<=0) {
-    //               // console.log("widdershins poly!");
-    //               continue;
-    //             }
-    //
-    //           let firstDiagonalLen=v1.pos.dist(v3.pos);
-    //           let firstAngle=Math.acos((edgeLen1**2+edgeLen2**2-firstDiagonalLen**2)/(2*edgeLen1*edgeLen2));
-    //           // console.log(firstDiagonalLen);
-    //
-    //           // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
-    //
-    //           let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
-    //
-    //           while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
-    //             let w1Index=wVerts[wVerts.length-2];
-    //             let w2Index=wVerts[wVerts.length-1];
-    //             let w1=V[w1Index];
-    //             let w2=V[w2Index];
-    //             let w3Found=false;
-    //             var w3Index=0;
-    //             let curEndpoint1, curEndpoint2;
-    //             for (; w3Index < numVerts; w3Index++) {
-    //               let w3=V[w3Index];
-    //
-    //               /* reasons w3 might be invalid */
-    //               if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
-    //               let edgeLen3=w2.pos.dist(w3.pos); //skip w3 because its distance to w2 is different than edgeLen1
-    //                 if (Math.abs(edgeLen1-edgeLen3)>0.001) {
-    //                   // console.log("a");
-    //                   continue;
-    //                 }
-    //               let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
-    //                 let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
-    //                 if (curOrientation<=0) {
-    //                   // console.log("widdershins poly!");
-    //                   continue;
-    //                 }
-    //               let newDiagonalLen=w1.pos.dist(w3.pos);//skip w3 because it makes a diagonal with a new length
-    //                 if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
-    //                   // console.log("diagonal new");
-    //                   continue;
-    //                 }
-    //
-    //               let curAngle=Math.acos((2*edgeLen1**2-newDiagonalLen**2)/(2*edgeLen1**2));
-    //
-    //               if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
-    //                 // console.log("a");
-    //                 continue;
-    //               }
-    //
-    //               w3Found=true;
-    //               break;
-    //             }
-    //
-    //             if (w3Found) {//new taken vertex in streak
-    //               if (wVerts.length>50) console.error("Infinite loop (probably)");
-    //
-    //               if (w3Index==v1Index) {//successful loop back to start, polygon done
-    //                 if (true) {//check that the polygon isn't a star
-    //                   let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
-    //                   let isStar=false;
-    //                   for (var i = 2; i < wVerts.length; i++) {
-    //                     let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
-    //                     // console.log(curOrientation);
-    //                     if (curOrientation>=0) {
-    //                       isStar=true;
-    //                       break;
-    //                     }
-    //                   }
-    //                   if (isStar) {
-    //                     break;
-    //                   }
-    //                 }
-    //
-    //                 // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
-    //                 takenPolys[curPlayer].push(wVerts);
-    //                 // drawTakenPoly(wVerts, 1);
-    //
-    //                 break;
-    //               }
-    //               else {//polygon not yet done, continue through the streak
-    //                 wVerts.push(w3Index);
-    //                 lastEndpoint1=curEndpoint1;
-    //                 lastEndpoint2=curEndpoint2;
-    //                 // console.log("&&& Keep going!");
-    //                 // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
-    //               }
-    //             }
-    //             else {//streak of taken vertices ended, polygon is incomplete
-    //               // console.log("&&& Streak ended!");
-    //               break;
-    //             }
-    //
-    //             // break;
-    //           }
-    //
-    //
-    //           // TODO: exceptions...?
-    //           // if (prevC.len()>10000) {
-    //           //   // for (var j=2; j<schlafliP; j++) {
-    //           //   //   let newV=P[i].verts[j];
-    //           //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
-    //           //   //
-    //           //   //   let s=V[v2].pos.sub(V[v1].pos);
-    //           //   //   let k=V[v1].pos.sub(normalI);
-    //           //   //
-    //           //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
-    //           //   //   // V[P[i].verts[j]].setPos(invertedI);
-    //           //   // }
-    //           //
-    //           //   console.log("bad!!!!!!!!!!!!!!!");
-    //           // }
-    //           // else {
-    //           //
-    //           // }
-    //         }
-    //       }
-    //     }
-    //     else {
-    //       for (var v2Index = 0; v2Index < numVerts; v2Index++) {
-    //         let v2=V[v2Index];
-    //         if (v2.takenByNumber!=curPlayer || v2Index==v1Index) continue; //skip v2 because it hasn't been taken or is the same as v1
-    //
-    //         let scaleM=(radius**2/v1.pos.sqLen() + 1)/2; //calculate endpoints and length of line v1 to v2
-    //           let scaleN=(radius**2/v2.pos.sqLen() + 1)/2;
-    //           let M=new Vec2(v1.pos.x*scaleM, v1.pos.y*scaleM);
-    //           let N=new Vec2(v2.pos.x*scaleN, v2.pos.y*scaleN);
-    //           let centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-    //
-    //           let C1=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-    //           let C1SqLen=C1.sqLen();
-    //           let tanD=radius*Math.sqrt((C1.x*radius)**2 + C1SqLen*(C1.y**2-radius**2));
-    //           let tanX1=(C1.x*radius**2+tanD)/C1SqLen;
-    //           let tanX2=(C1.x*radius**2-tanD)/C1SqLen;
-    //           let endpointU=new Vec2(tanX1, (radius**2-C1.x*tanX1)/C1.y);
-    //           let endpointV=new Vec2(tanX2, (radius**2-C1.x*tanX2)/C1.y);
-    //           // let newR=(C1.sub(v1.pos)).len();
-    //           let edgeLen1=Math.acosh(1+2*v1.pos.sub(v2.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v2.pos.sqLen()) ));
-    //
-    //         // context.fillStyle="orange";
-    //         // drawSquare(endpointU);
-    //         // drawSquare(endpointV);
-    //
-    //         for (var v3Index = 0; v3Index < numVerts; v3Index++) {
-    //           let v3=V[v3Index];
-    //
-    //           /* reasons v3 might be invalid */
-    //           if (v3.takenByNumber!=curPlayer || v3Index==v1Index || v3Index==v2Index) continue; //skip v3 because it hasn't been taken or is the same as a previous vertex
-    //           let edgeLen2=Math.acosh(1+2*v2.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v2.pos.sqLen())*(radius**2-v3.pos.sqLen()) )); //skip v3 because its distance to v2 is different than v2 to v1
-    //             if (Math.abs(edgeLen1-edgeLen2)>0.001) continue;
-    //           let v1v3Rot=new Vec2(v1.pos.y-v3.pos.y, v3.pos.x-v1.pos.x); //skip v3 because it goes widdershins
-    //             let polygonOrientation=v1v3Rot.dot(v2.pos.sub(v1.pos));
-    //             if (polygonOrientation<=0) {
-    //               // console.log("widdershins poly!");
-    //               continue;
-    //             }
-    //
-    //           scaleM=(radius**2/v2.pos.sqLen() + 1)/2;//calculate endpoints of line v2 to v3
-    //             scaleN=(radius**2/v3.pos.sqLen() + 1)/2;
-    //             M=new Vec2(v2.pos.x*scaleM, v2.pos.y*scaleM);
-    //             N=new Vec2(v3.pos.x*scaleN, v3.pos.y*scaleN);
-    //             centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-    //
-    //             let C2=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-    //             let C2SqLen=C2.sqLen();
-    //             tanD=radius*Math.sqrt((C2.x*radius)**2 + C2SqLen*(C2.y**2-radius**2));
-    //             tanX1=(C2.x*radius**2+tanD)/C2SqLen;
-    //             tanX2=(C2.x*radius**2-tanD)/C2SqLen;
-    //             let endpointS=new Vec2(tanX1, (radius**2-C2.x*tanX1)/C2.y);
-    //             let endpointT=new Vec2(tanX2, (radius**2-C2.x*tanX2)/C2.y);
-    //
-    //           let angleP=endpointU.sub(endpointV).dot(endpointS.sub(endpointT))+// TODO:NOTE:  this means radius has to be 1
-    //             endpointU.dot(endpointT)*endpointV.dot(endpointS)-
-    //             endpointU.dot(endpointS)*endpointV.dot(endpointT);
-    //             let angleQ=(1-endpointU.dot(endpointV))**2;
-    //             let angleR=(1-endpointS.dot(endpointT))**2;
-    //             let firstAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
-    //             let firstDiagonalLen=Math.acosh(1+2*v1.pos.sub(v3.pos).sqLen()*radius**2/( (radius**2-v1.pos.sqLen())*(radius**2-v3.pos.sqLen()) ));
-    //             // console.log(firstDiagonalLen);
-    //
-    //           // console.log(v1Index, v2Index, v3Index, ": ", firstAngle, " | ", edgeLen1, edgeLen2);
-    //
-    //           let wVerts=[v1Index, v2Index, v3Index]; //Vertices in new polygon
-    //           let lastEndpoint1=endpointS;
-    //           let lastEndpoint2=endpointT;
-    //
-    //           while (true) {//keep going along polygon until raching the starting point or a nonexistent vertex
-    //             let w1Index=wVerts[wVerts.length-2];
-    //             let w2Index=wVerts[wVerts.length-1];
-    //             let w1=V[w1Index];
-    //             let w2=V[w2Index];
-    //             let w3Found=false;
-    //             var w3Index=0;
-    //             let curEndpoint1, curEndpoint2;
-    //             for (; w3Index < numVerts; w3Index++) {
-    //               let w3=V[w3Index];
-    //
-    //               /* reasons w3 might be invalid */
-    //               if (w3.takenByNumber!=curPlayer || w3Index==w1Index || w3Index==w2Index) continue; //skip w3 because it hasn't been taken or is the same as a previous vertex
-    //               let edgeLen3=Math.acosh(1+2*w2.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w2.pos.sqLen())*(radius**2-w3.pos.sqLen()) )); //skip w3 because its distance to w2 is different than edgeLen1
-    //                 if (Math.abs(edgeLen1-edgeLen3)>0.001) {
-    //                   // console.log("a");
-    //                   continue;
-    //                 }
-    //               let w1w3Rot=new Vec2(w1.pos.y-w3.pos.y, w3.pos.x-w1.pos.x); //skip w3 because it goes widdershins
-    //                 let curOrientation=w1w3Rot.dot(w2.pos.sub(w1.pos));
-    //                 if (curOrientation<=0) {
-    //                   // console.log("widdershins poly!");
-    //                   continue;
-    //                 }
-    //               let newDiagonalLen=Math.acosh(1+2*w1.pos.sub(w3.pos).sqLen()*radius**2/( (radius**2-w1.pos.sqLen())*(radius**2-w3.pos.sqLen()) ));//skip w3 because it makes a diagonal with a new length
-    //                 if (Math.abs(firstDiagonalLen-newDiagonalLen)>0.001) {
-    //                   // console.log("diagonal new");
-    //                   continue;
-    //                 }
-    //
-    //               scaleM=(radius**2/w2.pos.sqLen() + 1)/2;//calculate endpoints of line w2 to w3
-    //                 scaleN=(radius**2/w3.pos.sqLen() + 1)/2;
-    //                 M=new Vec2(w2.pos.x*scaleM, w2.pos.y*scaleM);
-    //                 N=new Vec2(w3.pos.x*scaleN, w3.pos.y*scaleN);
-    //                 centerY=(M.x*(M.x*N.x-N.x*N.x-N.y*N.y)+M.y*M.y*N.x)/(M.y*N.x-N.y*M.x);
-    //
-    //                 let C3=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
-    //                 let C3SqLen=C3.sqLen();
-    //                 tanD=radius*Math.sqrt((C3.x*radius)**2 + C3SqLen*(C3.y**2-radius**2));
-    //                 tanX1=(C3.x*radius**2+tanD)/C3SqLen;
-    //                 tanX2=(C3.x*radius**2-tanD)/C3SqLen;
-    //                 curEndpoint1=new Vec2(tanX1, (radius**2-C3.x*tanX1)/C3.y);
-    //                 curEndpoint2=new Vec2(tanX2, (radius**2-C3.x*tanX2)/C3.y);
-    //
-    //               angleP=lastEndpoint1.sub(lastEndpoint2).dot(curEndpoint1.sub(curEndpoint2))+ //calculate angle w1-w2-w3 // TODO:NOTE: this means radius has to be 1
-    //                 lastEndpoint1.dot(curEndpoint2)*lastEndpoint2.dot(curEndpoint1)-
-    //                 lastEndpoint1.dot(curEndpoint1)*lastEndpoint2.dot(curEndpoint2);
-    //                 angleQ=(1-lastEndpoint1.dot(lastEndpoint2))**2;
-    //                 angleR=(1-curEndpoint1.dot(curEndpoint2))**2;
-    //                 let curAngle=Math.acos(Math.sqrt(angleP**2/(angleQ*angleR)));
-    //
-    //               if (Math.abs(curAngle-firstAngle)>0.001) { //skip w3 because current angle is different to firstAngle
-    //                 // console.log("a");
-    //                 continue;
-    //               }
-    //
-    //               w3Found=true;
-    //               break;
-    //             }
-    //
-    //             if (w3Found) {//new taken vertex in streak
-    //               if (wVerts.length>50) console.error("Infinite loop (probably)");
-    //
-    //               if (w3Index==v1Index) {//successful loop back to start, polygon done
-    //                 if (true) {//check that the polygon isn't a star
-    //                   let v1v2Rot=new Vec2(v1.pos.y-v2.pos.y, v2.pos.x-v1.pos.x);
-    //                   let isStar=false;
-    //                   for (var i = 2; i < wVerts.length; i++) {
-    //                     let curOrientation=v1v2Rot.dot(V[wVerts[i]].pos.sub(v1.pos));
-    //                     // console.log(curOrientation);
-    //                     if (curOrientation>=0) {
-    //                       isStar=true;
-    //                       break;
-    //                     }
-    //                   }
-    //                   if (isStar) {
-    //                     break;
-    //                   }
-    //                 }
-    //
-    //                 // console.log("%c&&& Hooray!  "+(wVerts.length), "color:orange; font-size:120%");
-    //                 takenPolys[curPlayer].push(wVerts);
-    //                 // drawTakenPoly(wVerts, 1);
-    //
-    //                 break;
-    //               }
-    //               else {//polygon not yet done, continue through the streak
-    //                 wVerts.push(w3Index);
-    //                 lastEndpoint1=curEndpoint1;
-    //                 lastEndpoint2=curEndpoint2;
-    //                 // console.log("&&& Keep going!");
-    //                 // // break;// TODO: shouldn't have break here, currently not working, use a breakpoint here while debugging
-    //               }
-    //             }
-    //             else {//streak of taken vertices ended, polygon is incomplete
-    //               // console.log("&&& Streak ended!");
-    //               break;
-    //             }
-    //
-    //             // break;
-    //           }
-    //
-    //
-    //           // TODO: exceptions...
-    //           // if (prevC.len()>10000) {
-    //           //   // for (var j=2; j<schlafliP; j++) {
-    //           //   //   let newV=P[i].verts[j];
-    //           //   //   let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
-    //           //   //
-    //           //   //   let s=V[v2].pos.sub(V[v1].pos);
-    //           //   //   let k=V[v1].pos.sub(normalI);
-    //           //   //
-    //           //   //   let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
-    //           //   //   // V[P[i].verts[j]].setPos(invertedI);
-    //           //   // }
-    //           //
-    //           //   console.log("bad!!!!!!!!!!!!!!!");
-    //           // }
-    //           // else {
-    //           //
-    //           // }
-    //         }
-    //       }
-    //     }
-    //     let newNumTakenPolys=takenPolys[curPlayer].length;
-    //     if (newNumTakenPolys!=prevNumTakenPolys) {
-    //       for (var i=prevNumTakenPolys; i<newNumTakenPolys; i++) {
-    //         drawTakenPoly(takenPolys[curPlayer][i], curPlayer, true);
-    //       }
-    //       drawAllVerts();
-    //       document.getElementById("score-display"+curPlayer).innerHTML=takenPolys[curPlayer].length;
-    //       lastClickTookPolygon=true;
-    //     }
-    //     numTakenVerts++;
-    //     document.getElementById("numTakenVerts").innerHTML=numTakenVerts;
-    //     curPlayer=curPlayer+1; if (curPlayer>numPlayers) curPlayer-=numPlayers;//move to next player
-    //     updateCurPlayerMarkerColor();
-    //   }
-    //   // console.log("click done");
-    // });
 
     window.addEventListener("keyup", function() {
       var curKey=event.keyCode;
