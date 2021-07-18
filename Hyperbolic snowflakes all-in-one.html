@@ -231,9 +231,10 @@
     .inlineNumber {
       display: inline;
     }
-    #schlafliInputContainer {
+    #schlafli-input-container {
        padding-bottom:3px;
        padding-top:3px;
+       color: black;
     }
 
   </style>
@@ -275,13 +276,13 @@
 
       <div class="dropdown-content uiContainer">
         <div class="uiSubContainer">
-          <span id="schlafliInputContainer"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid<br>
+          <span id="schlafli-input-container"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid<br>
           <button onclick="restart()"><b>Go</b></button>
         </div>
       </div>
     </div>
   </div>
-
+  
   <script type="text/javascript">
     "use strict";
     function rand(max=1) {
@@ -402,14 +403,15 @@
       var mirrorAngleContainer=document.getElementById("mirror-angle-container");
       
       const TAU=2*Math.PI;
-      const PI=Math.PI;
-      const HPI=Math.PI/2;
-      const PHI=(Math.sqrt(5)+1)/2;
-      const ROOT2=Math.sqrt(2);
-      const ROOT3=Math.sqrt(3);
-      const HALFROOT3=Math.sqrt(3)/2;
+        const PI=Math.PI;
+        const HPI=Math.PI/2;
+        const PHI=(Math.sqrt(5)+1)/2;
+        const ROOT2=Math.sqrt(2);
+        const ROOT3=Math.sqrt(3);
+        const HALFROOT3=Math.sqrt(3)/2;
       var paused=false;
       var frameSkip= 2 ;// TODO: what's the right value? (10 in hyp, 1 in snow?)
+      // var frameSkip= 20 ;
       var fReqs=frameSkip;
       var colorChangeSteps=0;
       var keys=[];
@@ -443,7 +445,10 @@
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[3, 7];
       // var schlafliSymbol=[5, 6];
-      var schlafliSymbol=[4, 6];
+      // var schlafliSymbol=[4, 6];
+      // var schlafliSymbol=[10, 10];
+      // var schlafliSymbol=[5, 4];
+      var schlafliSymbol=[7, 3];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -588,7 +593,8 @@
     function wordRho(r, w) {//rotate the word w by r (add r to each element, modulo the tileOrder)
       let res=[];
       for (var i = 0; i < w.length; i++) {
-        res[i]=((w[i]+r)%tileOrder+tileOrder)%tileOrder;
+        // res[i]=((w[i]+r)%tileOrder+tileOrder)%tileOrder;
+        res[i]=w[i]+r;// TODO: is it really this simple to make the tiles work with negative numbers?! this will have to be noted
       }
       return res;
     }
@@ -888,6 +894,85 @@
         //
         // }
       }
+      this.updateGlobalSegmentLength=function() {// TODO: better function (like one that sets a property of this DSF)
+        let curPos=new Vec2();
+        
+        let edgeWord=this.getEdgeWord();
+        let edgeWordLength=edgeWord.length;
+        for (var j = 1; j < tileOrder; j++) {
+          for (var i = 0; i < edgeWordLength; i++) {
+            edgeWord.push(edgeWord[i]+j);
+          }
+        }
+        // let differenceWord=[];// TODO: make more efficient with a single difference word
+        // for (var i = 1; i < edgeWordLength; i++) {
+        //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
+        // }
+        // console.log(edgeWord);
+        let y2=0;
+        let y3=0;
+        // const coefficientX2=1/3; const coefficientX3=2/3;//the solution that *should* be used if the gradient had only one valley // TODO: could maybe be bettered by dividing runningLen by the segmentLength to discourage short segments?
+        const coefficientX2=0.05; const coefficientX3=0.95;// TODO: instead, i'm using this immensely janky solution
+        for (var lenIndex = 1; lenIndex < 3; lenIndex++) {
+          // let segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*lenIndex/3;
+          let segmentLength=0;
+          if (lenIndex==1) {
+            segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
+          }
+          else if (lenIndex==2) {
+            segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
+          }
+          let runningLen=0;
+          let runningAng=0;
+          let innerTurnAngBonus=0;
+          // for (var j = 0; j < tileOrder; j++) {
+            for (var i = 0; i < edgeWord.length; i++) {
+              let innerTurnAng=0;
+              if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+                innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works (why eW[i]-eW[i-1] is 1 or -1)
+              }
+              let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+              
+              // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle // TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+              
+              // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+              innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+              let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              
+              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
+              // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+              
+              runningAng+=runningAngChange;
+              runningLen=newRunningLen;
+              // curPos=Vec2FromAngleAndHyperbolicLength(runningAng, runningLen);
+              // console.log(runningLen);
+            }
+          // }
+          if (lenIndex==1) {
+            y2=runningLen;
+          }
+          else if (lenIndex==2) {
+            y3=runningLen;
+          }
+          else {// TODO: this is a debug thingy
+            alert("alert006 forgot this");
+          }
+        }
+        
+        if (y2<y3) {
+          segLenUpperBound=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
+        }
+        else {
+          segLenLowerBound=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
+        }
+        
+        // console.log(y2, y3);
+        
+        // console.count("%cEnd of updateGlobalSegmentLength()", "color:lime; font-size: 160%;");
+        
+        // console.log(runningAng);//can sort of determine where the center is (but only using relation to other values, i think. maybe gradient descent of its derivative could work?)
+      }
       this.drawWithSettings=function(settings) {
         // let ctx=settings.context;
         // ctx.lineWidth=1;
@@ -978,112 +1063,34 @@
         
         // let segmentLength=1/maxDistFromCenter;
         const edgeAngleOffset=edgeVector.ang()+HPI;// TODO: hyperbolic
-        const segmentLength=0.98;
+        // const segmentLength=0.98;
+        // const segmentLength=0.652;
+        // const segmentLength=0.393;
+        // const segmentLength=globalSegmentLength;
+        // const segmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
+        // const segmentLength=(-colorChangeSteps/50%1+1)%1 *0.2;
+        // const segmentLength=(-colorChangeSteps/50%1+1)%1 *0.05;
+        const segmentLength=(segLenLowerBound+segLenUpperBound)/2;
         
         // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+        // const startPos=new Vec2(-0.5*Math.cot(PI/tileOrder), 0.5).mult(edgeVector.len());// TODO: untested
         // TODO: i don't know why this works
-        
-        const startPos=new Vec2();
-        // set startPos - the point where the path begins drawing
+        // set startPos - the point where the path begins drawing - as one of the vertices of the central tile
         // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
         
+        const startPos=new Vec2();
+        
         const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
-        // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
-        // for (var ttr = 0; ttr < 1; ttr++) {
         
-        // for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
-        //   let transf=tilingTransforms[ttr];
-        //   //define the tiles' contact point as the beginning of the boundary
-        //   let curPos=startPos;
-        //
-        //   ctx.strokeStyle="magenta";
-        //   ctx.lineWidth=2;
-        //   ctx.beginPath();
-        //   let curScreenPos=transf.applyTo(curPos).add(settings.pos).screen();
-        //   ctx.moveTo(curScreenPos.x, curScreenPos.y);
-        //
-        //   // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
-        //   // pathPoincareEdge(curPosTransformed.x, curPosTransformed.y);
-        //
-        //   // let edgeWord=this.getBoundaryWord();
-        //   let edgeWord=this.getEdgeWord();
-        //   // let edgeWordLength=edgeWord.length;
-        //   // for (var j = 1; j < tileOrder; j++) {
-        //   //   for (var i = 0; i < edgeWordLength; i++) {
-        //   //     edgeWord.push(edgeWord[i]+j);
-        //   //   }
-        //   // }
-        //   console.log(edgeWord);
-        //   let runningLen=0;
-        //   let runningAng=0;
-        //   let innerTurnAngBonus=0;
-        //   let lastPosTransformed=new Vec2();
-        //   let curPosTransformed=new Vec2();
-        //
-        //   // for (var j = 0; j < tileOrder; j++) {
-        //     for (var i = 0; i < edgeWord.length; i++) {
-        //       // let turnAng= i==0 ? 0 : (edgeWord[i]-edgeWord[i-1])*TAU/tileOrder+edgeAngleOffset;
-        //       let turnAng=0;
-        //       let innerTurnAng=0;
-        //       if (i==0) {//if this is the first segment, certain things (like getting the previous segment) won't work for it
-        //
-        //       }
-        //       else {
-        //         turnAng=TAU * (edgeWord[i]-edgeWord[i-1])/tileOrder;//external turning angle between the previous segment's ending direction and the current segment's beginning direction
-        //         innerTurnAng=PI-turnAng;//same an turnAng, but an internal angle
-        //       }
-        //       let innerTurnAngWithBonus=innerTurnAngBonus+innerTurnAng;
-        //
-        //
-        //       // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
-        //
-        //       // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-        //       innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-        //       let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-        //       let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
-        //
-        //       runningAng+=runningAngChange;
-        //
-        //       runningLen=newRunningLen;
-        //       curPos=Vec2FromAngleAndLength(runningAng, hypToEuclDist(runningLen));
-        //       // console.log(curPos);
-        //
-        //       // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
-        //       let scaledCurPos=curPos;
-        //       // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
-        //
-        //       curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();//in tessellation
-        //       curPosTransformed=transf.applyTo(scaledCurPos);//in tessellation
-        //
-        //       ctx.lineTo(curScreenPos.x, curScreenPos.y);
-        //
-        //       // console.log(lastPosTransformed, curPosTransformed);
-        //
-        //       // pathPoincareEdge(lastPosTransformed, curPosTransformed);
-        //
-        //       lastPosTransformed=curPosTransformed;
-        //     }
-        //   // }
-        //   // ctx.closePath();
-        //   // console.log(ctx);
-        //   ctx.fill("evenodd");
-        //   ctx.stroke();
-        // }
-        
-        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
+        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition)
           let transf=tilingTransforms[ttr];
           //define the tiles' contact point as the beginning of the boundary
           let curPos=startPos;
         
-          ctx.strokeStyle=settings.strokeStyle;// TODO: unneeded after debugging
-          ctx.lineWidth=1;
-        
           ctx.beginPath();
           let curScreenPos=transf.applyTo(curPos).add(settings.pos).screen();
           ctx.moveTo(curScreenPos.x, curScreenPos.y);
-          
           // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
-          // pathPoincareEdge(curPosTransformed.x, curPosTransformed.y);
           
           // let edgeWord=this.getBoundaryWord();
           let edgeWord=this.getEdgeWord();
@@ -1093,7 +1100,11 @@
               edgeWord.push(edgeWord[i]+j);
             }
           }
-          console.log(edgeWord);
+          // let differenceWord=[];// TODO: make more efficient with a single difference word
+          // for (var i = 1; i < edgeWordLength; i++) {
+          //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
+          // }
+          // console.log(edgeWord);
           let runningLen=0;
           let runningAng=0;
           let innerTurnAngBonus=0;
@@ -1102,43 +1113,34 @@
         
           // for (var j = 0; j < tileOrder; j++) {
             for (var i = 0; i < edgeWord.length; i++) {
-              console.log("%c"+i, "font-weight:bold; font-size: 160%");
+              // console.log("%c"+i, "font-weight:bold; font-size: 160%");
               // let turnAng= i==0 ? 0 : (edgeWord[i]-edgeWord[i-1])*TAU/tileOrder+edgeAngleOffset;
-              let turnAng=0;
+              // let turnAng=0;
               let innerTurnAng=0;
-              if (i==0) {//if this is the first segment, certain things (like getting the previous segment) won't work for it
-                
-              }
-              else {
-                turnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//external turning angle between the previous segment's ending direction and the current segment's beginning direction
-                innerTurnAng=PI-turnAng;//same an turnAng, but an internal angle
-                innerTurnAng=turnAng;//same an turnAng, but an internal angle // TODO: same
-                // console.log("turnAng", turnAng, "innerTurnAng", innerTurnAng);
+              if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+                // turnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//external turning angle between the previous segment's ending direction and the current segment's beginning direction
+                // innerTurnAng=PI-turnAng;//same an turnAng, but an internal angle
+                innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works
               }
               // let innerTurnAngWithBonus=innerTurnAngBonus+innerTurnAng;
               // console.log(innerTurnAngWithBonus,"=",innerTurnAngBonus,"+",innerTurnAng);
               let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
-              // if (innerTurnAngWithBonus>PI) innerTurnAngWithBonus-=TAU;// TODO: maybe generalize? (can it be wrong in other ways, i.e., >3*PI or <-PI)
-              console.log(innerTurnAngWithBonus,"=",innerTurnAng,"-",innerTurnAngBonus);
-              console.log("turnAng", turnAng, "innerTurnAng", innerTurnAng, "innerTurnAngWithBonus", innerTurnAngWithBonus);
               
-              // console.log(turnAng);
               
               // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
-              
               
               // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
               innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
               let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
               let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
               
-              console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
-              console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
+              // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
               
               
               runningAng+=runningAngChange;
               runningLen=newRunningLen;
-              console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
+              // console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
               curPos=Vec2FromAngleAndHyperbolicLength(runningAng, runningLen);
               // console.log(curPos);
               
@@ -1153,14 +1155,26 @@
               
               // console.log(lastPosTransformed, curPosTransformed);
               // pathPoincareEdge(lastPosTransformed, curPosTransformed);
-              pathPoincareEdge(curPosTransformed, lastPosTransformed);// TODO: whyyyyy??? should i refactor this call, the function, and other calls?
+              pathPoincareEdge(curPosTransformed, lastPosTransformed);// TODO: whyyyyy this order??? should i simultaneously refactor this call, the function, and other calls?
               
               lastPosTransformed=curPosTransformed;
             }
           // }
+          
+          // console.log(curScreenPos);
+          ctx.fillStyle="#ff0";
+          ctx.fillRect(curScreenPos.x-3, curScreenPos.y-3, 6, 6);
+          let endScreenPos=curPos.screen();
+          ctx.fillRect(endScreenPos.x-3, endScreenPos.y-3, 6, 6);
+          
+          // console.log(runningAng);//can sort of determine where the center is (but only using relation to other values, i think. maybe gradient descent of its derivative could work?)
+          // console.log(runningLen);
+          
+          // let x1=segLenLowerBound;
+          // let x4=segLenUpperBound;
+          
           // ctx.closePath();
-          // console.log(ctx);
-          ctx.fill("evenodd");
+          // ctx.fill("evenodd");
           ctx.stroke();
         }
       }
@@ -1238,7 +1252,7 @@
     // var curDSF=new DSF([0], []);
     
     // var curDSF=new DSF([0,0,2,3], []);
-    // var curDSF=new DSF([0,0,2], []);// TODO: this is still broken (i don't expect i'll fix it)
+    // var curDSF=new DSF([0,0,2], []);// TODO: this is still broken (and i don't expect that i'll fix it)
     // var curDSF=new DSF([0,1,0,1,2,1], []);
 
     function logCurDSFInfo() {
@@ -1257,17 +1271,29 @@
     // curDSF=curDSF.extend0();
     var curDSF=new DSF([0], []);
     curDSF=curDSF.extend1();
-    // curDSF=curDSF.swap1();// TODO: generation seems broken
-    // curDSF=curDSF.swap0();
+    curDSF=curDSF.swap1();// TODO: generation seems broken // TODO: why did i write that???
+    curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap 1();
     // curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap0();
     // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap1();
+    // curDSF=curDSF.swap0();
+    // curDSF=curDSF.swap1();
     // curDSF=curDSF.trimIfPossible();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.extend0();
-    // curDSF=curDSF.extend1();
     // logCurDSFInfo();
     // console.log("%cresult", "font-size:200%; padding:1%");
     // console.log(curDSF.w0, curDSF.w1);
@@ -1357,8 +1383,8 @@
       }
       // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
     }
-
-
+    
+    
     ;//COLORS
       function Color(r=255, g=0, b=255, a=1) {
         this.r=r;
@@ -1416,7 +1442,7 @@
         }
       }
       function ColorFromHSL(h=5/6, s=1, l=0.5, a=1) {
-        // TODO: this is dumb
+        // TODO: this is dumb (alsoneed a reference)
         h=(h%1+1)%1;
         let c = (1 - Math.abs(2 * l - 1)) * s,
             x = c * (1 - Math.abs((h*6) % 2 - 1)),
@@ -1515,56 +1541,39 @@
       }
       var useGradient=gradients.tech;
 
-      // TODO: takeColors was used for hyperbolic metasquares, probably won't be useful anymore
-      // var BGColor=new Color(10, 15, 30);
-      var takeColors=[[255,255,0],
-        [213, 94, 0],
-        [0, 114, 178],
-        [230, 220, 60],
-        [204, 121, 167],
-        [0, 158, 115],
-        [86, 180, 233],
-        [230, 159, 0],
-        // [220, 110, 0],
-        // [220, 110, 0],
-        // [220, 110, 0],
-      ]
-      for (var i = 0; i < takeColors.length; i++) {
-        var curColor=new Color(takeColors[i][0], takeColors[i][1], takeColors[i][2]);
-        var curFaceColor=curColor.rgb();
-        curFaceColor=curFaceColor.substring(0, curFaceColor.length-1)+",30%)";
-        takeColors[i]={
-          vertex: curColor.rgb(),
-          edge: curColor.rgb(),
-          face: curFaceColor
-        }
-      }
-      // var takeColors=[{},
-      //   {
-      //     vertex: "rgb(220, 110, 0)",
-      //     edge: "rgb(220, 110, 0)",
-      //     face: "rgba(165, 72, 0, 30%)"
-      //   },
-      //   {
-      //     vertex: "rgb(0, 10, 220)",
-      //     edge: "rgb(0, 10, 220)",
-      //     face: "rgba(0, 7, 165, 30%)"
-      //   }
+      // var takeColors=[[255,255,0],
+      //   [213, 94, 0],
+      //   [0, 114, 178],
+      //   [230, 220, 60],
+      //   [204, 121, 167],
+      //   [0, 158, 115],
+      //   [86, 180, 233],
+      //   [230, 159, 0]
       // ]
+      // for (var i = 0; i < takeColors.length; i++) {
+      //   var curColor=new Color(takeColors[i][0], takeColors[i][1], takeColors[i][2]);
+      //   var curFaceColor=curColor.rgb();
+      //   curFaceColor=curFaceColor.substring(0, curFaceColor.length-1)+",30%)";
+      //   takeColors[i]={
+      //     vertex: curColor.rgb(),
+      //     edge: curColor.rgb(),
+      //     face: curFaceColor
+      //   }
+      // }
 
       var drawColors=[];
       for (const col in colors) {//initialize drawColors with all predefined colors
         drawColors.push(colors[col]);
       }
       for (var i = 0; i < drawColors.length; i++) {//add color select elements
-        document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectFillColor(new Color("+drawColors[i].r+", "+drawColors[i].g+", "+drawColors[i].b+"))'> </div>";// TODO: use "...drawColors["+i+"]..." instead of .r, .g and .b
+        document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectFillColor(drawColors["+i+"])'> </div>";
       }
       
       var boundaryCircleColor="hsla(0, 0%, 100%, 0.7)";
       var hypPolyEdgeColor="rgb(110, 110, 110)";
       var hypPolyVertDefaultColor="rgb(220, 220, 220)";
-      
-
+    
+    
     function Vec2(x=0, y=0) {
       this.x=x;
       this.y=y;
@@ -1753,12 +1762,12 @@
       return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), v.x, v.y);
     }
     
-    function HyperbolicTransform(shiftDist=0, shiftAng=0, rotateAng=0) {//2D hyperbolic isometry, with rotation by rotateAng and then translation that moves the origin to the polar coordinates {shiftAng, shiftDist} // TODO: shiftAng before shiftDist
+    function HyperbolicTransform(shiftAng=0, shiftDist=0, rotateAng=0) {//hyperbolic isometry, with rotation by rotateAng and then a translation that moves the origin to the polar coordinates {shiftAng, shiftDist}
       this.shiftDist=shiftDist;
       this.shiftAng=shiftAng;
       this.rotateAng=rotateAng;
       this.getCopy=function() {
-        return new HyperbolicTransform(this.shiftDist, this.shiftAng, this.rotateAng);
+        return new HyperbolicTransform(this.shiftAng, this.shiftDist, this.rotateAng);
       }
       this.applyTo=function(v) {
         let res=v.rotate(this.rotateAng-this.shiftAng);
@@ -1767,8 +1776,9 @@
         return res;
       }
       this.applyTranslationTo=function(v) {
-        let ex=Math.exp(this.shiftDist);
-        return new Vec2(//working
+        let ex=Math.exp(this.shiftDist)
+        //formula adapted from the final equation in MvG (https://math.stackexchange.com/users/35416/mvg), Rigid body motion on the Poincare disc model of the hyperbolic plane, URL (version: 2013-02-19): https://math.stackexchange.com/q/308492
+        return new Vec2(
           (ex*v.x+v.x+ex-1) * (ex*v.x-v.x+ex+1) - (ex*v.y+v.y) * (v.y-ex*v.y),
           4*ex*v.y
         ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
@@ -1778,7 +1788,7 @@
         // ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
       }
       
-      // TODO: unimplemented
+      // TODO: unimplemented. are these two functions needed?
       this.scaleShiftBy=function(s) {//multiply the shifting vector by s
         let copy=this.getCopy();
         // copy.shiftX*=s;
@@ -1794,29 +1804,26 @@
         return copy;
       }
     }
-    function hyperbolicSASGetAngleAtFirstSide(a, C, b) {// TODO: rename
-      // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//these functions are not defined
-      // return Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));//this breaks in some edge cases
+    function hyperbolicSASGetAngleAtFirstSide(a, C, b) {// In a hyperbolic triangle, given two edges a, b and the angle between them, calculate the angle opposite b // TODO: rename?
+      //formula adapted from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
+      // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//direct copy, but these functions are not defined
+      // return Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));//modified to work, but this still breaks in some edge cases
       let res=Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));
-      // return (res+PI)%PI; // TODO: got this while messing around on desmos
-      // if (C%TAU>PI) {
-      //   res+=PI;
-      // }
-      // return (res+PI)%PI; // TODO: got this while messing around on desmos
-      if (res<0 ^ mod(C, TAU)>PI) {
+      if (res<0 ^ mod(C, TAU)>PI) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
         res+=PI;
-      }; // TODO: got this while messing around on desmos
-      // console.log("res:",res);
+      }
       return res;
     }
-    function hyperbolicSASGetThirdEdge(a, C, b) {// TODO: rename
-      // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//these functions are not defined
+    function hyperbolicSASGetThirdEdge(a, C, b) {// In a hyperbolic triangle, given two edges and the angle between them, calculate the third edge // TODO: rename?
+      //formula taken from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
       return Math.acosh(Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C));
     }
-    function hypToEuclDist(rho) {// TODO: attribute to Poincare’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
+    function hypToEuclDist(rho) {
+      //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
       return Math.tanh(rho/2);
     }
-    function euclToHypDist(r) {// TODO: same attribution as hypToEuclDist
+    function euclToHypDist(r) {
+      //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
       return 2*Math.atanh(r);
     }
 
@@ -1870,7 +1877,7 @@
         // this.drawPos=this.pos.mult(1/fracBottom);
 
         let distortPos=distortion(this.pos);
-        // TODO: where does this come from? what does this do?
+        // TODO: where does this come from? what does this do? (i think it' s something from my notes)
         let y=(Math.cosh(poincareEdgeLength*hypPolyVertRadius)-1)/2;
         let fracBottom=1-y*this.magnit**2+y;
         this.radius=isEuclidean ? poincareEdgeLength*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
@@ -1902,7 +1909,7 @@
     function getWeightedSquareAverage(x, y, v1, v2, v3, v4) {//smooth interpolation
       return getSmoothWeightedAverage(y, getSmoothWeightedAverage(x, v1, v2), getSmoothWeightedAverage(x, v3, v4));
     }
-    function getNoise(i, j, seed=0) {//perlin noise
+    function getNoise(i, j, seed=0) {//get perlin noise at (i, j)
       var fi=Math.floor(i);
       var fj=Math.floor(j);
       var reli=i-fi;
@@ -1940,7 +1947,7 @@
     function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       // if (true) {//arc edges
         // console.log(v1, v2);
-        if (!isEuclidean) {
+        // if (!isEuclidean) {
           var scaleM=((radius/v1.len())**2 + 1)/2;
           var scaleN=((radius/v2.len())**2 + 1)/2;
           var M=v1.mult(scaleM);
@@ -1950,8 +1957,9 @@
           var prevC=new Vec2(M.x+M.y*(M.y-centerY)/M.x, centerY);
           var newR=(prevC.sub(v1)).len();
           // console.log(newR);
-        }
-        if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
+        // }
+        // if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
+        if (newR>=10000 || Number.isNaN(newR)) {// TODO: removing isEuclidean conditions seems to successfully draw euclidean shapes in the poincare disk, if that makes sense. maybe it'll cause problems down the line!
           var v1Screen=v1.screen();
           var v2Screen=v2.screen();
           // ctx.moveTo(v1Screen.x, v1Screen.y);
@@ -1972,7 +1980,7 @@
       //   drawLine(v1, v2);//straight lines, alternative to arcs
       // }
     }
-    function pathPoincarePoly(vertArr) {
+    function pathPoincarePoly(vertArr) {//add one polygon's (as an array of indexes in V[]) path to context
       var avgVertPos=new Vec2();
       context.beginPath();
       let firstVertScreen=V[vertArr[0]].pos.screen();
@@ -1990,7 +1998,7 @@
         "avgVertPos": avgVertPos
       }
     }
-    function drawGridPoly(vertArr) {
+    function drawGridPoly(vertArr) {//draw a polygon which is part of the hyperbolic grid
       var pathData=pathPoincarePoly(vertArr);
       // var avgVertPos=pathData;
       // var color=new Color(randRange(30, 256), randRange(30, 256), randRange(30, 256));
@@ -2013,18 +2021,14 @@
         V[i].draw();
       }
     }
-    function updateCurPlayerMarkerColor() {
-      document.getElementById("curPlayerMarker").style.color=takeColors[curPlayer].vertex;
-    }
 
 
 
     var BGColor=new Color(0, 0, 0);
     var fillColor=new Color(255, 255, 255);
     var fillColorWithErase=fillColor;//temporary color (same as fillColor except when erasing, then it's the background color)
-    var drawSize=1;// TODO: relative to unit, otherwise scaling messes up filled regions
+    var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
 
-    var useHyperbolicTilingTransforms=false;
     var tilingTransforms=[];
     var inTileTransforms=[];// TODO: full affine transformation array instead?
     var mirrorM; // m of the mirror line y=mx
@@ -2071,7 +2075,7 @@
         mirrorM=slope;
       }
 
-      // TODO: other tileOrder
+      // TODO: other tileOrders should also be supported
       if (tileOrder==6) {//make mirrorM between 0 and ROOT3/6 (angle between 0 and 30deg)
         // TODO: fairly untested
         for (var i = 0; i < 2 && mirrorM>=1/ROOT3; i++) {
@@ -2119,7 +2123,6 @@
     // TODO: dynamically set as many as are needed with the current canvas size
     // TODO: scaling based on selected tiling (some naturally appear bigger than others due to unit edge lengths and different polygons)
     function setTilingTransforms() {
-      useHyperbolicTilingTransforms=false;//default to using affine transformations instead of hyperbolic isometries
       switch (tilingTypeName) {
         case "square":
           tilingTransforms=[
@@ -2148,34 +2151,6 @@
           ].map(x => Affine2FromShift(x));
           break;
         case "hex":
-          // tilingTransforms=[
-          //   new Vec2(0, 0),
-          //
-          //   new Vec2(-1, 0),
-          //   new Vec2(-0.5, ROOT3/2),
-          //   new Vec2(-0.5, -ROOT3/2),
-          //
-          //   new Vec2(1, 0),
-          //   new Vec2(0.5, ROOT3/2),
-          //   new Vec2(0.5, -ROOT3/2),
-          //
-          //   //not so necessary
-          //   new Vec2(-2, 0),
-          //   new Vec2(-1.5, ROOT3/2),
-          //   new Vec2(-1.5, -ROOT3/2),
-          //
-          //   new Vec2(2, 0),
-          //   new Vec2(1.5, ROOT3/2),
-          //   new Vec2(1.5, -ROOT3/2)
-          //
-          //   // new Vec2(1, 0),
-          //   // new Vec2(0.5, ROOT3/2),
-          //   // new Vec2(-0.5, ROOT3/2),
-          //   //
-          //   // new Vec2(-1, 0),
-          //   // new Vec2(-0.5, -ROOT3/2),
-          //   // new Vec2(0.5, -ROOT3/2)
-          // ].map(x => Affine2FromShift(x.mult(ROOT3)));// TODO: probably doesn't work
           tilingTransforms=[
             new Vec2(0, 0),
 
@@ -2233,38 +2208,33 @@
           tilingTransforms=[new Affine2()];
           break;
         case "hypTest":
-          useHyperbolicTilingTransforms=true;
           tilingTransforms=[
-            // new HyperbolicTransform(),
-            new HyperbolicTransform(0,0,0.01),
-            // new HyperbolicTransform(1, 1, 0)
+            new HyperbolicTransform(),
+            // new HyperbolicTransform(0,0,0.01),
+            // new HyperbolicTransform(3.9889, 3, 0)
           ]
           break;
-        case "regular using schlafli":// TODO: generalize
-          useHyperbolicTilingTransforms=true;// TODO: is this needed? (because i have applyTo methods)
+        case "regular using schlafli":// TODO: generalize with schlafli symbol input, then i can get rid of square, hex and tri
           // let schlafliP=7; let schlafliQ=3;
           // let schlafliP=3; let schlafliQ=7;
           // let schlafliP=5; let schlafliQ=6;
           // let centerToVertex=1.1;
-          let centerToVertex=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));// TODO: attribution to malinc site (here and in restart (actually make a single function)) // TODO: actually make this a global variable to use here and in reset
-          // console.log("eucl",centerToVertex);
           
-          //convert euclidean distance to hyperbolic distance
-          // centerToVertex=Math.acosh(1+ (2*centerToVertex**2) / (1-centerToVertex**2) );// TODO: attribute to https://en.wikipedia.org/wiki/Poincar%C3%A9_disk_model (if used)
-          centerToVertex=2*Math.atanh(centerToVertex);//same as previous method // TODO: attribute to Poincare’s Disk Model for Hyperbolic Geometry https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf
-          // console.log("to hyp",centerToVertex);
+          // //formula taken from http://www.malinc.se/noneuclidean/en/poincaretiling.php#formula on 16.07.2021
+          // let centerToVertex=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));// TODO: actually make this a global variable to use here and in reset
+          //
+          // //convert euclidean distance to hyperbolic distance
+          // centerToVertex=euclToHypDist(centerToVertex);
           
           //i need the distance to the edge midpoint, not to the vertex
           let centerToEdgeMidpoint=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertex)) // TODO: attribute hyperbolic trigonometry formula to https://en.wikipedia.org/wiki/Hyperbolic_triangle
-          
-          // TODO: put these steps into one formula?
           
           tilingTransforms=[
             new HyperbolicTransform()
           ]
           for (var i = 0; i < schlafliP; i++) {
-            // tilingTransforms.push(new HyperbolicTransform(centerToVertex, TAU*i/schlafliP, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
-            tilingTransforms.push(new HyperbolicTransform(2*centerToEdgeMidpoint, TAU*(i+0.5)/schlafliP, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
+            // tilingTransforms.push(new HyperbolicTransform(TAU*i/schlafliP, centerToVertex, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
+            tilingTransforms.push(new HyperbolicTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpoint, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
           }
           break;
         default:
@@ -2424,7 +2394,7 @@
       drawSize=savedSize;
     }
     function drawFromCurDSF() {//draw the current DSF using .drawToWholeScreen()
-      // TODO:
+      // TODO: controlled by user
       curDSF.drawToWholeScreen();
       // generateDSFGrid();
     }
@@ -2453,7 +2423,15 @@
       }
       drawAllVerts();
     }
-
+    
+    
+    var globalSegmentLength=1;
+    var segLenLowerBound=0.001;    // TODO: arbitrary // TODO: also doesn't work consistently, but that's more about the general method than this value
+    var segLenUpperBound=3;       //
+    for (var i = 0; i < 200; i++) { //
+      curDSF.updateGlobalSegmentLength();
+    }
+    
     function update() {
       if (!paused) {
         if (fReqs>=frameSkip) {
@@ -2492,25 +2470,31 @@
           // pathPoincareEdge(p1Vec, p3Vec, ctx);
           // ctx.stroke();
           
-          let curMousePos=mousePos.unscreen();//mouse position, no longer in screen coordinates
+          // globalSegmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
+          // drawFromCurDSF();
+          
+          // context.clearRect(0, 0, canvas.width, canvas.height);
+          // curDSF.updateGlobalSegmentLength();
+          
+          let mouseScreenPos=mousePos.unscreen();//mouse position, no longer in screen coordinates // TODO: rename
           if (mouseDown) {
             // fReqs=0;
             // console.log(fReqs);
             
             // for (var i = 0; i < 20; i++) {
             //   if (true) {//do calculations
-            //     curMousePos=curMousePos.add(new Vec2(rand0(maxStep), rand0(maxStep))).mult(distFactor);
+            //     mouseScreenPos=mouseScreenPos.add(new Vec2(rand0(maxStep), rand0(maxStep))).mult(distFactor);
             //   }
             //   draw();// TODO: this commented block could be fixed, but is it useful? (btw draw probably needs to be outside the for)
             //   colorChangeSteps++;
             // }
             
-            mousePositions.push(curMousePos);
-            drawPointAtPosition(curMousePos);
+            mousePositions.push(mouseScreenPos);
+            drawPointAtPosition(mouseScreenPos);
             // colorChangeSteps++;
           }
           else {
-            drawPointAtPosition(curMousePos, changingContext);
+            drawPointAtPosition(mouseScreenPos, changingContext);
           }
           
           colorChangeSteps++;
@@ -2530,14 +2514,14 @@
           && newSchlafliSymbol[1]>=3 && newSchlafliSymbol[1]<=30
           && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
         )
-        {// TODO: arbitrary limits (particularly upper ones) // TODO: allow spherical too!
-          document.getElementById("schlafliInputContainer").style.backgroundColor="";
+        {// TODO: change arbitrary limits (particularly upper ones) // TODO: allow spherical geometry too!
+          document.getElementById("schlafli-input-container").style.backgroundColor="";
           schlafliSymbol=newSchlafliSymbol;
           schlafliP=schlafliSymbol[0];
           schlafliQ=schlafliSymbol[1];
         }
         else {
-          document.getElementById("schlafliInputContainer").style.backgroundColor="rgb(240, 90, 90)";
+          document.getElementById("schlafli-input-container").style.backgroundColor="rgb(240, 90, 90)";
         }
       
       if (true){// INITIAL object definition (first polygon and vertices with positions)
@@ -2573,7 +2557,7 @@
           // let offsetAng=0.001; let offsetX=0.0001; let offsetY=0.00002;//extra stable?
           let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for polygon checking)
           // let offsetAng=0.05; let offsetX=0; let offsetY=0;//newly stable
-          // let offsetAng=0; let offsetX=0; let offsetY=0;// TODO: why doesn't it work??
+          // let offsetAng=0; let offsetX=0; let offsetY=0;// TODO: why doesn't it work?
 
           // let offsetAng=0.001; let offsetX=0; let offsetY=0;
 
@@ -2917,7 +2901,7 @@
       context.clearRect(0, 0, canvas.width, canvas.height);
       if (initialDrawingReady) {
         // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
-        // drawFromCurDSF();// TODO: probably a better place for this?
+        drawFromCurDSF();// TODO: probably a better place for this?
       }
       mousePositions=[];
       movements=[];
@@ -2945,7 +2929,7 @@
       context.lineJoin="round";// TODO: probably not needed
       context.lineCap="round";
       // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
-      // drawAllPoints();// TODO: turn on
+      drawAllPoints();// TODO: turn on
     }
     resizeWithWait();
     initialDrawingReady=true;
@@ -2953,7 +2937,7 @@
     restart();
     update();
     
-    drawFromCurDSF();// TODO: better place for this
+    // drawFromCurDSF();// TODO: better place for this
     // drawHyperbolicGrid();
 
 
