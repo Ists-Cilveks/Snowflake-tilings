@@ -449,7 +449,9 @@
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[10, 10];
       // var schlafliSymbol=[5, 4];
-      var schlafliSymbol=[7, 3];
+      var schlafliSymbol=[6, 4];
+      // var schlafliSymbol=[8, 3];
+      // var schlafliSymbol=[3, 7];
       // var schlafliSymbol=[3, 7];
       
       var schlafliP=schlafliSymbol[0];
@@ -468,8 +470,9 @@
       // var tileOrder= 7 ;
       // var tilingTypeIndex= 5 ;
       var tileOrder= schlafliP ;
-      var tilingTypeIndex= 4 ;
-      // var tilingTypeIndex= 5 ;
+      // var tilingTypeIndex= 4 ;
+      var tilingTypeIndex= 5 ;
+      // var tilingTypeIndex= 0 ;
       
       tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
       var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
@@ -553,9 +556,11 @@
         var lastClickTookPolygon=false;
         var isEuclidean=false;
         
-        var poincareEdgeLength;
-        var centerToEdgeMidpoint;
-        var centerToVertex;//hyp distance from the center of a tile to its vertex, for the tiling given by schlafliSymbol
+        var edgeLengthHyp;
+        var centerToEdgeMidpointEuc;
+        var centerToEdgeMidpointHyp;
+        var centerToVertexEuc;//hyp distance from the center of a tile to its vertex, for the tiling given by schlafliSymbol
+        var centerToVertexHyp;
         
         var hypPolyVertRadius= 0.15 ;
         var hypPolyEdgeWidth= 0.03 ;
@@ -905,6 +910,41 @@
         //
         // }
       }
+      this.updateMirrorM=function() {// TODO: generalize path calculations into a seperate function, they're already used in 3 DSF methods
+        let curPos=new Vec2();
+        
+        let edgeWord=this.w0;
+        let segmentLength=globalSegmentLength;
+        let runningLen=0;
+        let runningAng=0;
+        let innerTurnAngBonus=0;
+        // for (var j = 0; j < tileOrder; j++) {
+        for (var i = 0; i < edgeWord.length; i++) {
+          let innerTurnAng=0;
+          if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+            innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works (why eW[i]-eW[i-1] is 1 or -1)
+          }
+          let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+          
+          // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+          
+          // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+          innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+          let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+          let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+          
+          runningAng+=runningAngChange;
+          runningLen=newRunningLen;
+        }
+        
+        console.log(globalEdgeAngleOffset, runningAng);
+        let newMirrorM=hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+globalEdgeAngleOffset-runningAng, runningLen)/2;
+        // newMirrorM-=PI-globalEdgeAngleOffset-PI/schlafliQ;
+        console.log(newMirrorM);
+        // TODO: mirrorM is wrong for some reason
+        // changeMirrorAngle(0);
+        changeMirrorAngle(newMirrorM);
+      }
       this.updateGlobalSegmentLength=function() {// TODO: better function (like one that sets a property of this DSF)
         let curPos=new Vec2();
         
@@ -952,20 +992,20 @@
               // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle // TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
               
               // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-              let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
               
               // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
               // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
               
               if (iterations==numIterations-1 && i==edgeWordLength && lenIndex==1) {
-                globalEdgeAngleOffset=runningAng;
+                globalEdgeAngleOffset=runningAng;//update globalEdgeAngleOffset // TODO: done here out of convenience, should be made separate
               }
               
               runningAng+=runningAngChange;
               runningLen=newRunningLen;
-              // curPos=Vec2FromAngleAndHyperbolicLength(runningAng, runningLen);
+              // curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
               // console.log(runningLen);
               
             }
@@ -1097,21 +1137,19 @@
         // const startPos=new Vec2();
         
         // const startingAng=0;
-        const startingLen=0;
-        // const startingAng=0.06;
-        // const startingAng=0.9;
+        // const startingAng=-PI;
         const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;
-        // const startingAng=0.0001;
-        // const startingLen=0.0001;// TODO: maybe 0 will be fine
+        const startingLen=0;// TODO: will 0 cause problems? if not, simplify the rest of the code
+        // const startingLen=0.0001;
         // const startingLen=0.3;
-        // const startingLen=centerToVertex;
+        // const startingLen=centerToVertexEuc;
         // console.log(startingLen);
-        // const startPos=Vec2FromAngleAndHyperbolicLength(startingAng, startingLen);
-        // const startPos=Vec2FromAngleAndHyperbolicLength(PI-globalEdgeAngleOffset-PI/schlafliQ, startingLen);
-        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HyperbolicTransform(0, euclToHypDist(centerToVertex));// TODO: rename
-        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HyperbolicTransform();
-        // const startPos=Vec2FromAngleAndHyperbolicLength(0, startingLen);
-        // const startPos=Vec2FromAngleAndHyperbolicLength(0, euclToHypDist(centerToVertex));
+        // const startPos=Vec2FromAngleAndHypLength(startingAng, startingLen);
+        // const startPos=Vec2FromAngleAndHypLength(PI-globalEdgeAngleOffset-PI/schlafliQ, startingLen);
+        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
+        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
+        // const startPos=Vec2FromAngleAndHypLength(0, startingLen);
+        // const startPos=Vec2FromAngleAndHypLength(0, centerToVertexHyp);
         const startPos=hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2());
         
         const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
@@ -1164,9 +1202,9 @@
               // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
               
               // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hyperbolicSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hyperbolicSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-              let runningAngChange=hyperbolicSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
+              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
               
               // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
               // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
@@ -1174,7 +1212,7 @@
               runningAng+=runningAngChange;
               runningLen=newRunningLen;
               // console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
-              curPos=Vec2FromAngleAndHyperbolicLength(runningAng, runningLen);
+              curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
               // console.log(curPos);
               
               // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
@@ -1201,7 +1239,7 @@
           // let endScreenPos=curPos.screen();
           // ctx.fillRect(endScreenPos.x-3, endScreenPos.y-3, 6, 6);
           // ctx.fillStyle="#f119";
-          // let edgeEndScreenPos=Vec2FromAngleAndHyperbolicLength(globalEdgeAngleOffset, poincareEdgeLength).screen();
+          // let edgeEndScreenPos=Vec2FromAngleAndHypLength(globalEdgeAngleOffset, edgeLengthHyp).screen();
           // ctx.fillRect(edgeEndScreenPos.x-3, edgeEndScreenPos.y-3, 6, 6);
           
           // ctx.closePath();
@@ -1302,18 +1340,18 @@
     // curDSF=curDSF.extend0();
     var curDSF=new DSF([0], []);
     curDSF=curDSF.extend1();
-    curDSF=curDSF.swap1();// TODO: generation seems broken // TODO: why did i write that???
-    curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap 1();
-    // curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap1();// TODO: generation seems broken // TODO: why did i write that???
     // curDSF=curDSF.swap0();
-    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.swap1();
+    curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap0();
+    curDSF=curDSF.extend1();
     // curDSF=curDSF.extend0();
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
-    // curDSF=curDSF.swap0();
+    curDSF=curDSF.swap0();
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.swap0();
     // curDSF=curDSF.swap1();
@@ -1672,8 +1710,8 @@
     function Vec2FromAngleAndLength(ang, len=1) {
       return new Vec2(len*Math.cos(ang), len*Math.sin(ang));
     }
-    function Vec2FromAngleAndHyperbolicLength(ang, len=1) {
-      len=hypToEuclDist(len);
+    function Vec2FromAngleAndHypLength(ang, len=1) {
+      len=hypToEucDist(len);
       return new Vec2(len*Math.cos(ang), len*Math.sin(ang));
     }
     function Affine2(iHatX=1, iHatY=0, jHatX=0, jHatY=1, shiftX=0, shiftY=0) {//class for a 2D affine transformation
@@ -1717,12 +1755,12 @@
       return new Affine2(Math.cos(a), -Math.sin(a), Math.sin(a), Math.cos(a), v.x, v.y);
     }
     
-    function HyperbolicTransform(shiftAng=0, shiftDist=0, rotateAng=0) {//hyperbolic isometry, with rotation by rotateAng and then a translation that moves the origin to the polar coordinates {shiftAng, shiftDist}
+    function HypTransform(shiftAng=0, shiftDist=0, rotateAng=0) {//hyperbolic isometry, with rotation by rotateAng and then a translation that moves the origin to the polar coordinates {shiftAng, shiftDist}
       this.shiftDist=shiftDist;
       this.shiftAng=shiftAng;
       this.rotateAng=rotateAng;
       this.getCopy=function() {
-        return new HyperbolicTransform(this.shiftAng, this.shiftDist, this.rotateAng);
+        return new HypTransform(this.shiftAng, this.shiftDist, this.rotateAng);
       }
       this.applyTo=function(v) {
         let res=v.rotate(this.rotateAng-this.shiftAng);
@@ -1759,7 +1797,7 @@
         return copy;
       }
     }
-    function hyperbolicSASGetAngleAtFirstSide(a, C, b) {// In a hyperbolic triangle, given two edges a, b and the angle between them, calculate the angle opposite b // TODO: rename?
+    function hypSASGetAngleAtFirstSide(a, C, b) {// In a hyperbolic triangle, given two edges a, b and the angle between them, calculate the angle opposite b // TODO: rename?
       if (C==0) {
         if (a<b) {
           return PI;
@@ -1780,15 +1818,15 @@
       }
       return res;
     }
-    function hyperbolicSASGetThirdEdge(a, C, b) {// In a hyperbolic triangle, given two edges and the angle between them, calculate the third edge // TODO: rename?
+    function hypSASGetThirdEdge(a, C, b) {// In a hyperbolic triangle, given two edges and the angle between them, calculate the third edge // TODO: rename?
       //formula taken from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
       return Math.acosh(Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C));
     }
-    function hypToEuclDist(rho) {
+    function hypToEucDist(rho) {
       //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
       return Math.tanh(rho/2);
     }
-    function euclToHypDist(r) {
+    function eucToHypDist(r) {
       //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
       return 2*Math.atanh(r);
     }
@@ -1835,18 +1873,18 @@
         // this.drawPos=v.square();
         // this.drawPos=new Vec2(v.x, v.y);
 
-        // let y=(Math.cosh(poincareEdgeLength*hypPolyVertRadius)-1)/2;
+        // let y=(Math.cosh(edgeLengthHyp*hypPolyVertRadius)-1)/2;
         // // isEuclidean ? 10 :
         // let fracBottom=1-y*this.magnit**2+y;
-        // this.radius=isEuclidean ? poincareEdgeLength*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
+        // this.radius=isEuclidean ? edgeLengthHyp*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
         // // let drawCenterDist=this.magnit/fracBottom;
         // this.drawPos=this.pos.mult(1/fracBottom);
 
         let distortPos=distortion(this.pos);
         // TODO: where does this come from? what does this do? (i think it' s something from my notes)
-        let y=(Math.cosh(poincareEdgeLength*hypPolyVertRadius)-1)/2;
+        let y=(Math.cosh(edgeLengthHyp*hypPolyVertRadius)-1)/2;
         let fracBottom=1-y*this.magnit**2+y;
-        this.radius=isEuclidean ? poincareEdgeLength*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
+        this.radius=isEuclidean ? edgeLengthHyp*hypPolyVertRadius : (1-this.magnit*this.magnit)*Math.sqrt(y*(y+1))/fracBottom;
         // this.radius=0.01;
         // let drawCenterDist=this.magnit/fracBottom;
         this.drawPos=distortPos.mult(1/fracBottom);
@@ -1994,12 +2032,6 @@
     var tilingTransforms=[];
     var inTileTransforms=[];// TODO: full affine transformation array instead?
     var mirrorM; // m of the mirror line y=mx
-    autoGenerateButtonClickability();
-    clearAll();
-    changeTilingType();
-
-    setDrawingToCurDSF();
-    changeMirrorAngle();
 
     function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
       inTileTransforms=[];
@@ -2085,7 +2117,11 @@
     // TODO: dynamically set as many as are needed with the current canvas size
     // TODO: scaling based on selected tiling (some naturally appear bigger than others due to unit edge lengths and different polygons)
     function setTilingTransforms() {
+      // console.trace("setTilingTransforms");
       switch (tilingTypeName) {
+        case "none":
+          tilingTransforms=[new Affine2()];
+          break;
         case "square":
           tilingTransforms=[
             new Vec2(0, 0),
@@ -2166,40 +2202,40 @@
           ].map(x => Affine2FromAngleAndShift(x[0], x[1].mult(1/ROOT3)));
           // ].map(x => Affine2FromAngleAndShift(x[0], x[1]));
           break;
-        case "none":
-          tilingTransforms=[new Affine2()];
-          break;
         case "hypTest":
           tilingTransforms=[
-            new HyperbolicTransform(),
-            // new HyperbolicTransform(0,0,0.01),
-            new HyperbolicTransform(4, 3, 0),
-            new HyperbolicTransform(0, 2.5, 0),
-            // new HyperbolicTransform(0, 0.01, 0),
+            new HypTransform(),
+            // new HypTransform(0,0,0.01),
+            new HypTransform(4, 3, 0),
+            new HypTransform(0, 2.5, 0),
+            // new HypTransform(0, 0.01, 0),
           ]
           break;
         case "regular using schlafli":// TODO: generalize with schlafli symbol input, then i can get rid of square, hex and tri
           // let schlafliP=7; let schlafliQ=3;
           // let schlafliP=3; let schlafliQ=7;
           // let schlafliP=5; let schlafliQ=6;
-          // let centerToVertex=1.1;
+          // let centerToVertexEuc=1.1;
           
           // //formula taken from http://www.malinc.se/noneuclidean/en/poincaretiling.php#formula on 16.07.2021
-          // let centerToVertex=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));
+          // let centerToVertexEuc=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));
           //
           // //convert euclidean distance to hyperbolic distance
-          // centerToVertex=euclToHypDist(centerToVertex);
+          // centerToVertexEuc=centerToVertexHyp;
           
           //i need the distance to the edge midpoint, not to the vertex
-          let centerToEdgeMidpoint=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertex)) // TODO: attribute hyperbolic trigonometry formula to https://en.wikipedia.org/wiki/Hyperbolic_triangle
+          let centerToEdgeMidpointEuc=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertexEuc)) // TODO: attribute hyperbolic trigonometry formula to https://en.wikipedia.org/wiki/Hyperbolic_triangle
           
           tilingTransforms=[
-            new HyperbolicTransform()
+            new HypTransform()
           ]
           for (var i = 0; i < schlafliP; i++) {
-            // tilingTransforms.push(new HyperbolicTransform(TAU*i/schlafliP, centerToVertex, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
-            tilingTransforms.push(new HyperbolicTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpoint, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
+            // tilingTransforms.push(new HypTransform(TAU*i/schlafliP, centerToVertexEuc, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
+            // tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointEuc, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
+            // tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
+            tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
           }
+          console.log(tilingTransforms);
           break;
         default:
           alert("this shouldn't have happened! (invalid tiling type)");
@@ -2363,7 +2399,7 @@
       // generateDSFGrid();
     }
 
-    function drawHyperbolicGrid() {// TODO: jankiness could be lessened with homogenous coordinates
+    function drawHypGrid() {// TODO: jankiness could be lessened with homogenous coordinates
       context.fillStyle=BGColor.rgb();
       context.fillRect(0, 0, canvas.width, canvas.height);
       if (!isEuclidean) {//draw boundary circle
@@ -2410,18 +2446,18 @@
           // let C=colorChangeSteps/20-2*TAU;
           // let b=2;
           //
-          // let p3Ang=hyperbolicSASGetAngleAtFirstSide(a, C, b);
+          // let p3Ang=hypSASGetAngleAtFirstSide(a, C, b);
           // // console.log(p3Ang);
           // // if (p3Ang<0) {
           // //   p3Ang+=PI;
           // // }
           // // let p3Ang=1;
-          // let p3Len=hyperbolicSASGetThirdEdge(a, C, b);
+          // let p3Len=hypSASGetThirdEdge(a, C, b);
           // // let p3Len=1;
           //
-          // let p1Vec=Vec2FromAngleAndHyperbolicLength(p1Ang, p1Len);
-          // let p2Vec=Vec2FromAngleAndHyperbolicLength(p2Ang, p2Len);
-          // let p3Vec=Vec2FromAngleAndHyperbolicLength(p3Ang, p3Len);
+          // let p1Vec=Vec2FromAngleAndHypLength(p1Ang, p1Len);
+          // let p2Vec=Vec2FromAngleAndHypLength(p2Ang, p2Len);
+          // let p3Vec=Vec2FromAngleAndHypLength(p3Ang, p3Len);
           // let p1Screen=p1Vec.screen();
           // // let p2Screen=p2Vec.screen();
           // // let p3Screen=p3Vec.screen();
@@ -2508,27 +2544,31 @@
           d=Math.sqrt((Math.tan(PI / 2 - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(PI / 2 - PI / schlafliQ) + Math.tan(PI / schlafliP)));
           
           //formula taken from http://www.malinc.se/noneuclidean/en/poincaretiling.php#formula on 16.07.2021
-          centerToVertex=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));
-          
-          centerToEdgeMidpoint=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertex));
+          centerToVertexEuc=d;
           
           // TODO: where is this from? // TODO: rename, it's hyperbolic, not just poincare
-          poincareEdgeLength=Math.acosh(1+2*((1-Math.cos(TAU/schlafliP))**2+Math.sin(TAU/schlafliP)**2)*(radius*d)**2/( (radius**2-d**2)**2 ));
+          edgeLengthHyp=Math.acosh(1+2*((1-Math.cos(TAU/schlafliP))**2+Math.sin(TAU/schlafliP)**2)*(radius*d)**2/( (radius**2-d**2)**2 ));
+          
+          centerToEdgeMidpointEuc=hypToEucDist(hypSASGetThirdEdge(eucToHypDist(centerToVertexEuc), PI/schlafliQ, edgeLengthHyp/2));
         }
         else if ((schlafliP-2)*(schlafliQ-2)==4) {
           isEuclidean=true;
           d=0.1;
           
-          // centerToVertex=1;
+          centerToVertexEuc=d;
           
-          // centerToEdgeMidpoint=0;
+          // centerToEdgeMidpointEuc=0;
           
-          // TODO: what's the plan here? i don't remember what that poincareEdgeLength formula is
-          poincareEdgeLength=d*Math.sqrt(2*(1-Math.cos(TAU/schlafliP)));
+          // TODO: what's the plan here? i don't remember what that edgeLengthHyp formula is
+          edgeLengthHyp=d*Math.sqrt(2*(1-Math.cos(TAU/schlafliP)));
         }
-        // console.log(d, poincareEdgeLength);
+        // console.log(d, edgeLengthHyp);
+        
+        centerToVertexHyp=eucToHypDist(centerToVertexEuc);
+        centerToEdgeMidpointHyp=eucToHypDist(centerToEdgeMidpointEuc);
         
         curDSF.updateGlobalSegmentLength();
+        curDSF.updateMirrorM();
 
         for (var i=0; i<schlafliP; i++) {//first polygon position
           // let offsetAng=0; let offsetX=0.02; let offsetY=0.01;//c++ version, causes problems near borders
@@ -2875,13 +2915,13 @@
       // console.log("numVerts", numVerts);
       // console.log("numPolys", numPolys);
 
-      // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
+      // drawHypGrid();// TODO: turn on hyperbolic grid
       drawFromCurDSF();
     }
     function clearAll() {
       context.clearRect(0, 0, canvas.width, canvas.height);
       if (initialDrawingReady) {
-        // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
+        // drawHypGrid();// TODO: turn on hyperbolic grid
         // drawFromCurDSF();// TODO: probably a better place for this?
       }
       mousePositions=[];
@@ -2909,17 +2949,31 @@
       height=canvas.height=changingCanvas.height=window.innerHeight;
       context.lineJoin="round";// TODO: probably not needed
       context.lineCap="round";
-      // drawHyperbolicGrid();// TODO: turn on hyperbolic grid
+      // drawHypGrid();// TODO: turn on hyperbolic grid
       drawAllPoints();// TODO: turn on
     }
+    
+    // TODO: these functions (that need to be run at program start) are a mess (restart called twice etc etc)
+    
+    autoGenerateButtonClickability();
+    clearAll();
+    // changeMirrorAngle();
+    
+    setDrawingToCurDSF();
+    
     resizeWithWait();
     initialDrawingReady=true;
     autoGenerateButtonClickability();
     restart();
+    
+    changeTilingType();
+    
+    restart();
+    
     update();
     
     // drawFromCurDSF();// TODO: better place for this
-    // drawHyperbolicGrid();
+    // drawHypGrid();
 
 
 
@@ -2976,7 +3030,7 @@
       //   // var pixSize=14;
       //   gridWidth=canvas.width/pixSize; gridHeight=canvas.height/pixSize;
       //   initialiseGrid();
-      //   drawHyperbolicGrid();
+      //   drawHypGrid();
       // }
       // console.log(keys);
       // console.log(curKey);
@@ -2996,7 +3050,7 @@
           }
           break;
         case 68://d - draw hyperbolic grid // TODO:
-          drawHyperbolicGrid();
+          drawHypGrid();
           break;
         case 82://r - clear all
           clearAll();
