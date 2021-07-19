@@ -509,11 +509,11 @@
       setUseMirrors(true);
       
       var curMirrorAngleInput=0;
-      var mirrorAngleInputOptionsArr=[
-      ["k=√3/x", function(x){ return ROOT3/x; }, "Slope=√3/", ""],
-      ["k=x", function(x){ return x; }, "Slope=", ""],
-      ["θ=x <i>rad</i>", function(x){ return Math.tan(x); }, "Angle=", "<i>rad</i>"],
-      ["θ=x°", function(x){ return Math.tan(x/360*TAU); }, "Angle=", "°"]
+      var mirrorAngleInputOptionsArr=[//[symbol in selection tab, function to make the input into a slope, text before input box, text after input box]
+        ["k=√3/x", function(x){ return ROOT3/x; }, "Slope=√3/", ""],
+        ["k=x", function(x){ return x; }, "Slope=", ""],
+        ["θ=x <i>rad</i>", function(x){ return Math.tan(x); }, "Angle=", "<i>rad</i>"],
+        ["θ=x°", function(x){ return Math.tan(x/360*TAU); }, "Angle=", "°"]
       ]
       function setCurMirrorAngleInput(curInput=0) {
         curMirrorAngleInput=curInput;
@@ -565,9 +565,6 @@
         var hypPolyVertRadius= 0.15 ;
         var hypPolyEdgeWidth= 0.03 ;
         
-        var globalSegmentLength;
-        var segLenLowerBound;
-        var segLenUpperBound;
         var globalEdgeAngleOffset;
         
         function distortion(vec) {
@@ -640,10 +637,12 @@
       alert("alert005 wordSplitUVAndVU bad input");
       return {u:[], v:[]};
     }
-    function DSF(w0, w1, operatorTrace=[]) {//most of the algorithms here are from ComProp // TODO: it's not really DSF, but some modification/generalization of it.
-      // TODO: add a tileOrder property (maybe i want to generate and display tiles that aren't selected for user drawing)
+    function DSF(w0, w1, operatorTrace=[]) {//class for a modification of a double square factorization (restricted with symmetry but generalized with different tilings TODO: it's not really DSF, but some modification/generalization of it). most of the algorithms here are from ComProp
+      // TODO: this is a wall of code
+      // TODO: add a tileOrder property (because maybe i want to generate and display tiles that aren't selected for user drawing)
       this.w0=w0.slice();
       this.w1=w1.slice();
+      this.segmentLength=1;
       this.operatorTrace=operatorTrace;
       this.getWord=function(i) {// TODO: untested
         if ((i%2+2)%2==0) {
@@ -910,11 +909,11 @@
         //
         // }
       }
+      
       this.updateMirrorM=function() {// TODO: generalize path calculations into a seperate function, they're already used in 3 DSF methods
         let curPos=new Vec2();
         
         let edgeWord=this.w0;
-        let segmentLength=globalSegmentLength;
         let runningLen=0;
         let runningAng=0;
         let innerTurnAngBonus=0;
@@ -929,9 +928,9 @@
           // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
           
           // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-          innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-          let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-          let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+          innerTurnAngBonus=hypSASGetAngleAtFirstSide(this.segmentLength, innerTurnAngWithBonus, runningLen);
+          let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, this.segmentLength);
+          let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, this.segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
           
           runningAng+=runningAngChange;
           runningLen=newRunningLen;
@@ -945,11 +944,11 @@
         // changeMirrorAngle(0);
         changeMirrorAngle(newMirrorM);
       }
-      this.updateGlobalSegmentLength=function() {// TODO: better function (like one that sets a property of this DSF)
+      this.updateSegmentLength=function() {// TODO: better function (like one that sets a property of this DSF)
         let curPos=new Vec2();
         
-        segLenLowerBound=0.001;     // TODO: arbitrary // TODO: also doesn't work consistently, but that's more about the general method than this value
-        segLenUpperBound=3;
+        let segLenLowerBound=0.001;     // TODO: arbitrary // TODO: also doesn't work consistently, but that's more about the general method than this value
+        let segLenUpperBound=3;
         
         let edgeWord=this.getEdgeWord();
         let edgeWordLength=edgeWord.length;
@@ -971,12 +970,12 @@
           const coefficientX2=0.05; const coefficientX3=0.95;// TODO: instead, i'm using this immensely janky solution
           for (var lenIndex = 1; lenIndex < 3; lenIndex++) {
             // let segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*lenIndex/3;
-            let segmentLength=0;
+            let segLen=0;
             if (lenIndex==1) {
-              segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
+              segLen=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
             }
             else if (lenIndex==2) {
-              segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
+              segLen=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
             }
             let runningLen=0;
             let runningAng=0;
@@ -992,11 +991,11 @@
               // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle // TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
               
               // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
+              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
               
-              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
+              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
               // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
               
               if (iterations==numIterations-1 && i==edgeWordLength && lenIndex==1) {
@@ -1031,7 +1030,7 @@
           }
           // console.log(y2, y3);
         }
-        globalSegmentLength=(segLenLowerBound+segLenUpperBound)/2;
+        this.segmentLength=(segLenLowerBound+segLenUpperBound)/2;
       }
       this.drawWithSettings=function(settings) {
         // let ctx=settings.context;
@@ -1046,7 +1045,7 @@
         // }
         // // console.log(maxDistFromCenter);
         //
-        // // let segmentLength=1/maxDistFromCenter;
+        // // let segLen=1/maxDistFromCenter;
         // const edgeAngleOffset=edgeVector.ang()+HPI;
         // // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
         // // let startPos=new Vec2();
@@ -1121,12 +1120,11 @@
         }
         // console.log(maxDistFromCenter);
         
-        // let segmentLength=1/maxDistFromCenter;
-        const segmentLength=globalSegmentLength;
-        // const segmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
-        // const segmentLength=(-colorChangeSteps/50%1+1)%1 *0.2;
-        // const segmentLength=(-colorChangeSteps/50%1+1)%1 *0.05;
-        // const segmentLength=(segLenLowerBound+segLenUpperBound)/2;
+        // let segLen=1/maxDistFromCenter;
+        const segLen=this.segmentLength;
+        // const segLen=(-colorChangeSteps/500%1+1)%1 *0.1;
+        // const segLen=(-colorChangeSteps/50%1+1)%1 *0.2;
+        // const segLen=(-colorChangeSteps/50%1+1)%1 *0.05;
         
         // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
         // const startPos=new Vec2(-0.5*Math.cot(PI/tileOrder), 0.5).mult(edgeVector.len());// TODO: untested
@@ -1202,11 +1200,11 @@
               // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
               
               // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segmentLength, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segmentLength);
-              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segmentLength); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
+              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
+              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
               
-              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segmentLength", segmentLength);
+              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
               // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
               
               runningAng+=runningAngChange;
@@ -1256,7 +1254,7 @@
         // settings.fillStyle="#048c";
         this.drawWithSettings(settings);
       }
-      this.isEqualTo=function(d) {
+      this.isEqualTo=function(d) {// TODO: this should check if they're eqivalent after rotation or mirroring (i.e. w0*w1==w1*wordRho(1, w0))
         if (this.w0.length==d.w0.length && this.w1.length==d.w1.length) {
           for (var i = 0; i < this.w0.length; i++) {
             if (this.w0[i]!=d.w0[i]) return false;
@@ -2426,7 +2424,7 @@
     
     
     // for (var i = 0; i < 200; i++) {
-    //   curDSF.updateGlobalSegmentLength();
+    //   curDSF.updateSegmentLength();
     // }
     
     function update() {
@@ -2467,11 +2465,11 @@
           // pathPoincareEdge(p1Vec, p3Vec, ctx);
           // ctx.stroke();
           
-          // globalSegmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
+          // curDSF.segmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
           // drawFromCurDSF();
           
           // context.clearRect(0, 0, canvas.width, canvas.height);
-          // curDSF.updateGlobalSegmentLength();
+          // curDSF.updateSegmentLength();
           
           let mouseScreenPos=mousePos.unscreen();//mouse position, no longer in screen coordinates // TODO: rename
           if (mouseDown) {
@@ -2567,7 +2565,7 @@
         centerToVertexHyp=eucToHypDist(centerToVertexEuc);
         centerToEdgeMidpointHyp=eucToHypDist(centerToEdgeMidpointEuc);
         
-        curDSF.updateGlobalSegmentLength();
+        curDSF.updateSegmentLength();
         curDSF.updateMirrorM();
 
         for (var i=0; i<schlafliP; i++) {//first polygon position
