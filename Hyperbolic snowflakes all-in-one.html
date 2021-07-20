@@ -445,13 +445,13 @@
       
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[3, 7];
-      // var schlafliSymbol=[5, 6];
+      // var schlafliSymbol=[6, 6];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[10, 10];
       // var schlafliSymbol=[5, 4];
-      var schlafliSymbol=[6, 4];
+      // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[8, 3];
-      // var schlafliSymbol=[3, 7];
+      var schlafliSymbol=[12, 7];
       // var schlafliSymbol=[3, 7];
       
       var schlafliP=schlafliSymbol[0];
@@ -936,28 +936,20 @@
           runningLen=newRunningLen;
         }
         
-        console.log(globalEdgeAngleOffset, runningAng);
-        let newMirrorM=hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+globalEdgeAngleOffset-runningAng, runningLen)/2;
-        // newMirrorM-=PI-globalEdgeAngleOffset-PI/schlafliQ;
-        console.log(newMirrorM);
-        // TODO: mirrorM is wrong for some reason
-        // changeMirrorAngle(0);
+        let newMirrorM=Math.tan(hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+globalEdgeAngleOffset-runningAng, runningLen)/2);
         changeMirrorAngle(newMirrorM);
       }
       this.updateSegmentLength=function() {// TODO: better function (like one that sets a property of this DSF)
         let curPos=new Vec2();
         
-        let segLenLowerBound=0.001;     // TODO: arbitrary // TODO: also doesn't work consistently, but that's more about the general method than this value
-        let segLenUpperBound=3;
+        // let segLenLowerBound=0.001;     // TODO: arbitrary
+        // let segLenUpperBound=3;
+        let segLenLowerBound=0;
+        let segLenUpperBound=20;
+        let segLen;
         
         let edgeWord=this.getEdgeWord();
-        let edgeWordLength=edgeWord.length;
-        for (var j = 1; j < tileOrder; j++) {
-          for (var i = 0; i < edgeWordLength; i++) {
-            edgeWord.push(edgeWord[i]+j);
-          }
-        }
-        const numIterations=200;
+        const numIterations=70;
         for (var iterations = 0; iterations < numIterations; iterations++) {
           // let differenceWord=[];// TODO: make more efficient with a single difference word
           // for (var i = 1; i < edgeWordLength; i++) {
@@ -966,71 +958,47 @@
           // console.log(edgeWord);
           let y2=0;
           let y3=0;
-          // const coefficientX2=1/3; const coefficientX3=2/3;//the solution that *should* be used if the gradient had only one valley // TODO: could maybe be bettered by dividing runningLen by the segmentLength to discourage short segments?
-          const coefficientX2=0.05; const coefficientX3=0.95;// TODO: instead, i'm using this immensely janky solution
-          for (var lenIndex = 1; lenIndex < 3; lenIndex++) {
-            // let segmentLength=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*lenIndex/3;
-            let segLen=0;
-            if (lenIndex==1) {
-              segLen=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
+          segLen=(segLenLowerBound+segLenUpperBound)/2;
+          
+          let runningLen=0;
+          let runningAng=0;
+          let innerTurnAngBonus=0;
+          // for (var j = 0; j < tileOrder; j++) {
+          for (var i = 0; i < edgeWord.length; i++) {
+            let innerTurnAng=0;
+            if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+              innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works (why eW[i]-eW[i-1] is 1 or -1)
             }
-            else if (lenIndex==2) {
-              segLen=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
-            }
-            let runningLen=0;
-            let runningAng=0;
-            let innerTurnAngBonus=0;
-            // for (var j = 0; j < tileOrder; j++) {
-            for (var i = 0; i < edgeWord.length; i++) {
-              let innerTurnAng=0;
-              if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
-                innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works (why eW[i]-eW[i-1] is 1 or -1)
-              }
-              let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
-              
-              // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle // TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
-              
-              // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
-              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
-              
-              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
-              // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
-              
-              if (iterations==numIterations-1 && i==edgeWordLength && lenIndex==1) {
-                globalEdgeAngleOffset=runningAng;//update globalEdgeAngleOffset // TODO: done here out of convenience, should be made separate
-              }
-              
-              runningAng+=runningAngChange;
-              runningLen=newRunningLen;
-              // curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
-              // console.log(runningLen);
-              
-            }
-            // }
-            if (lenIndex==1) {
-              y2=runningLen;
-            }
-            else if (lenIndex==2) {
-              y3=runningLen;
-            }
-            else {// TODO: this is a debug thingy
-              alert("alert006 forgot this");
-            }
+            let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+            
+            // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle // TODO: cite better) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+            
+            // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+            innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
+            let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
+            let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+            
+            // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
+            // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+            
+            
+            runningAng+=runningAngChange;
+            runningLen=newRunningLen;
+            // curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
           }
-          
-          // console.log(runningAng);//can sort of determine where the center is (but only using relation to other values, i think. maybe gradient descent of its derivative could work?)
-          
-          if (y2<y3) {
-            segLenUpperBound=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX3;
+          if (iterations==numIterations-1) {
+            globalEdgeAngleOffset=runningAng;//update globalEdgeAngleOffset // TODO: done here out of convenience, maybe should be made separate
+          }
+                    
+          if (runningLen>edgeLengthHyp) {
+            segLenUpperBound=segLen;
           }
           else {
-            segLenLowerBound=segLenLowerBound+(segLenUpperBound-segLenLowerBound)*coefficientX2;
+            segLenLowerBound=segLen;
           }
           // console.log(y2, y3);
         }
-        this.segmentLength=(segLenLowerBound+segLenUpperBound)/2;
+        this.segmentLength=segLen;
       }
       this.drawWithSettings=function(settings) {
         // let ctx=settings.context;
@@ -1135,8 +1103,9 @@
         // const startPos=new Vec2();
         
         // const startingAng=0;
-        // const startingAng=-PI;
+        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
         const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;
+        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
         const startingLen=0;// TODO: will 0 cause problems? if not, simplify the rest of the code
         // const startingLen=0.0001;
         // const startingLen=0.3;
@@ -1144,15 +1113,27 @@
         // console.log(startingLen);
         // const startPos=Vec2FromAngleAndHypLength(startingAng, startingLen);
         // const startPos=Vec2FromAngleAndHypLength(PI-globalEdgeAngleOffset-PI/schlafliQ, startingLen);
-        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
-        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
         // const startPos=Vec2FromAngleAndHypLength(0, startingLen);
         // const startPos=Vec2FromAngleAndHypLength(0, centerToVertexHyp);
         const startPos=hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2());
         
         const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
         
-        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition)
+        // let edgeWord=this.getBoundaryWord();
+        let edgeWord=this.getEdgeWord();
+        let edgeWordLength=edgeWord.length;
+        for (var j = 1; j < tileOrder; j++) {
+          for (var i = 0; i < edgeWordLength; i++) {
+            edgeWord.push(edgeWord[i]+j);
+          }
+        }
+        // let differenceWord=[];// TODO: make more efficient with a single difference word
+        // for (var i = 1; i < edgeWordLength; i++) {
+        //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
+        // }
+        // console.log(edgeWord);
+        
+        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition) // TODO: maybe first calculate all the points once and then loop over the transformations {and the points}
           let transf=tilingTransforms[ttr];
           //define the tiles' contact point as the beginning of the boundary
           let curPos=startPos;
@@ -1161,23 +1142,10 @@
           // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
           // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).screen();
           let curScreenPos=transf.applyTo(curPos).screen();// TODO: i think this only helps when pathPoincareEdge fails
-          ctx.moveTo(curScreenPos.x, curScreenPos.y);//while drawing the path, move to the starting point
+          ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
           
           // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
           
-          // let edgeWord=this.getBoundaryWord();
-          let edgeWord=this.getEdgeWord();
-          let edgeWordLength=edgeWord.length;
-          for (var j = 1; j < tileOrder; j++) {
-            for (var i = 0; i < edgeWordLength; i++) {
-              edgeWord.push(edgeWord[i]+j);
-            }
-          }
-          // let differenceWord=[];// TODO: make more efficient with a single difference word
-          // for (var i = 1; i < edgeWordLength; i++) {
-          //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
-          // }
-          // console.log(edgeWord);
           
           // let innerTurnAngBonus=PI+0.00001;
           // let innerTurnAngBonus=0.00001;
@@ -1194,6 +1162,7 @@
               let innerTurnAng=0;
               if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
                 innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works
+                // console.log("edgeWord[i]-edgeWord[i-1]", edgeWord[i]-edgeWord[i-1]);
               }
               let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
               
@@ -1343,22 +1312,8 @@
     // curDSF=curDSF.swap1();
     curDSF=curDSF.extend0();
     // curDSF=curDSF.swap0();
-    curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.extend0();
-    // curDSF=curDSF.swap0();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.swap0();
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.trimIfPossible();
     // logCurDSFInfo();
@@ -1796,7 +1751,8 @@
       }
     }
     function hypSASGetAngleAtFirstSide(a, C, b) {// In a hyperbolic triangle, given two edges a, b and the angle between them, calculate the angle opposite b // TODO: rename?
-      if (C==0) {
+      // if (mod(C, TAU)==0) {
+      if (Math.abs(mod(C, TAU))<=0.0000001) {// TODO: use an epsilon (?)
         if (a<b) {
           return PI;
         }
@@ -1818,7 +1774,8 @@
     }
     function hypSASGetThirdEdge(a, C, b) {// In a hyperbolic triangle, given two edges and the angle between them, calculate the third edge // TODO: rename?
       //formula taken from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
-      return Math.acosh(Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C));
+      let res=Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C);
+      return res>1 ? Math.acosh(res) : 0;// TODO: kinda janky but i probably can't avoid it
     }
     function hypToEucDist(rho) {
       //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
@@ -2233,7 +2190,7 @@
             // tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
             tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
           }
-          console.log(tilingTransforms);
+          // console.log(tilingTransforms);
           break;
         default:
           alert("this shouldn't have happened! (invalid tiling type)");
@@ -2470,6 +2427,7 @@
           
           // context.clearRect(0, 0, canvas.width, canvas.height);
           // curDSF.updateSegmentLength();
+          // curDSF.updateMirrorM();
           
           let mouseScreenPos=mousePos.unscreen();//mouse position, no longer in screen coordinates // TODO: rename
           if (mouseDown) {
