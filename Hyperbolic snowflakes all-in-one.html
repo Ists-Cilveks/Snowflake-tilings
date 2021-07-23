@@ -434,24 +434,24 @@
       var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
       
       // var schlafliSymbol=[5, 4];
-      // var schlafliSymbol=[4, 5];
+      var schlafliSymbol=[4, 5];
       // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[4, 6];
-      // var schlafliSymbol=[8, 3];
+      // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
+      // var schlafliSymbol=[18, 3];// TODO: [10, 3] [14, 3] [18, 3] generate one polygon on the opposite side
       // var schlafliSymbol=[3, 8];
       // var schlafliSymbol=[3, 27];
       // var schlafliSymbol=[4, 4];
       
-      // var schlafliSymbol=[7, 3];
+      // var schlafliSymbol=[6, 3];
       // var schlafliSymbol=[3, 7];
-      // var schlafliSymbol=[6, 6];
+      // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[10, 10];
-      // var schlafliSymbol=[5, 4];
       // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[8, 3];
-      var schlafliSymbol=[12, 7];
+      // var schlafliSymbol=[12, 7];
       // var schlafliSymbol=[3, 7];
       
       var schlafliP=schlafliSymbol[0];
@@ -459,20 +459,15 @@
       
       
       // var tileOrder= 4 ;
-      // var tilingTypeIndex= 1 ;
+      // var tilingTypeIndex=1;//square
       // var tileOrder= 6 ;
-      // var tilingTypeIndex= 2 ;
+      // var tilingTypeIndex=2;//hex
       // var tileOrder= 3 ;
-      // var tilingTypeIndex= 3 ;
-      // var tileOrder= 12 ;
-      // var tilingTypeIndex= 1 ;
-      // var tileOrder= 5 ;
-      // var tileOrder= 7 ;
-      // var tilingTypeIndex= 5 ;
+      // var tilingTypeIndex=3;//tri
       var tileOrder= schlafliP ;
-      // var tilingTypeIndex= 4 ;
-      var tilingTypeIndex= 5 ;
-      // var tilingTypeIndex= 0 ;
+      // var tilingTypeIndex=4;//hypTest
+      var tilingTypeIndex=5;//hyperbolic grid
+      // var tilingTypeIndex=0;//single tile
       
       tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
       var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
@@ -637,7 +632,7 @@
       alert("alert005 wordSplitUVAndVU bad input");
       return {u:[], v:[]};
     }
-    function DSF(w0, w1, operatorTrace=[]) {//class for a modification of a double square factorization (restricted with symmetry but generalized with different tilings TODO: it's not really DSF, but some modification/generalization of it). most of the algorithms here are from ComProp
+    function DSF(w0, w1, operatorTrace=[]) {//class for a modification of a double square factorization (restricted with symmetry but generalized with different tilings TODO: it's not really DSF, but some modification/generalization of it, i should rename the class). most of the algorithms here are from ComProp
       // TODO: this is a wall of code
       // TODO: add a tileOrder property (because maybe i want to generate and display tiles that aren't selected for user drawing)
       this.w0=w0.slice();
@@ -911,6 +906,7 @@
       }
       
       this.updateMirrorM=function() {// TODO: generalize path calculations into a seperate function, they're already used in 3 DSF methods
+        // console.log("updateMirrorM");
         let curPos=new Vec2();
         
         let edgeWord=this.w0;
@@ -1001,218 +997,218 @@
         this.segmentLength=segLen;
       }
       this.drawWithSettings=function(settings) {
-        // let ctx=settings.context;
-        // ctx.lineWidth=1;
-        // ctx.strokeStyle=settings.strokeStyle;
-        // ctx.fillStyle=settings.fillStyle;
-        //
-        // let edgeVector=this.getEdgeVector();
-        // let maxDistFromCenter;
-        // if (settings.useDistFromCenter) {
-        //   maxDistFromCenter=this.getMaxDistFromCenter();
-        // }
-        // // console.log(maxDistFromCenter);
-        //
-        // // let segLen=1/maxDistFromCenter;
-        // const edgeAngleOffset=edgeVector.ang()+HPI;
-        // // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
-        // // let startPos=new Vec2();
-        // // switch (tileOrder) {
-        // //   case 6:
-        // //     startPos=new Vec2(ROOT3/2, 0.5);
-        // //     break;
-        // //   case 4:
-        // //     startPos=new Vec2(0.5, 0.5);
-        // //     break;
-        // //   case 3:
-        // //     startPos=new Vec2(0.5/ROOT3, 0.5);
-        // //     break;
-        // //   default:// TODO: maybe include other cases?
-        // //     startPos=new Vec2(-0.5, 0.5);
-        // // }
-        // // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-        // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
-        // // TODO: i don't know why this works
-        // // set startPos - the point where the path begins drawing
-        // // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-        //
-        // const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
-        // // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
-        // // for (var ttr = 0; ttr < 1; ttr++) {
-        // for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
-        //   let transf=tilingTransforms[ttr];
-        //   //define the tiles' contact point as the beginning of the boundary
-        //   let curPos=startPos;
-        //
-        //   ctx.beginPath();
-        //   // ctx.moveTo(curScreenPos.x, curScreenPos.y);
-        //   let edgeWord=this.getEdgeWord();
-        //
-        //   for (var j = 0; j < tileOrder; j++) {//euclidean
-        //     for (var i = 0; i < edgeWord.length; i++) {
-        //       let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
-        //       curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
-        //
-        //       let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
-        //       let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
-        //       // let curScreenPos=transf.applyTo(curPos.mult(1/edgeVector.len())).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
-        //       // let curScreenPos=transf.applyTo(curPos.mult(1/maxDistFromCenter)).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//individual display
-        //       // let curScreenPos=transf.applyTo(curPos).mult(settings.DSFRelativeRadius/maxDistFromCenter).add(settings.pos).screen();//individual
-        //       ctx.lineTo(curScreenPos.x, curScreenPos.y);
-        //     }
-        //   }
-        //   ctx.closePath();
-        //   ctx.fill("evenodd");
-        //   ctx.stroke();
-        //   // ctx.stroke();//double for less jagged look
-        // }
-        // // //debug point at center of canvas
-        // // context.fillStyle="#f00";
-        // // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
-        //
-        //
-        // console.log("end of dsf drawing");
-        
-        // TODO: euclidean DSF drawing above, hyperbolic DSF below, gonna have to join them (or at least add an if(isEuclidean){} )
-        
-        
-        let ctx=settings.context;
-        ctx.lineWidth=1;
-        ctx.strokeStyle=settings.strokeStyle;
-        ctx.fillStyle=settings.fillStyle;
-        
-        let edgeVector=this.getEdgeVector();
-        let maxDistFromCenter;
-        if (settings.useDistFromCenter) {
-          maxDistFromCenter=this.getMaxDistFromCenter();
+        if (isEuclidean) {// TODO: join cases more neatly?
+          let ctx=settings.context;
+          ctx.lineWidth=1;
+          ctx.strokeStyle=settings.strokeStyle;
+          ctx.fillStyle=settings.fillStyle;
+          
+          let edgeVector=this.getEdgeVector();
+          let maxDistFromCenter;
+          if (settings.useDistFromCenter) {
+            maxDistFromCenter=this.getMaxDistFromCenter();
+          }
+          // console.log(maxDistFromCenter);
+          
+          // let segLen=1/maxDistFromCenter;
+          const edgeAngleOffset=edgeVector.ang()+HPI;
+          // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
+          // let startPos=new Vec2();
+          // switch (tileOrder) {
+          //   case 6:
+          //     startPos=new Vec2(ROOT3/2, 0.5);
+          //     break;
+          //   case 4:
+          //     startPos=new Vec2(0.5, 0.5);
+          //     break;
+          //   case 3:
+          //     startPos=new Vec2(0.5/ROOT3, 0.5);
+          //     break;
+          //   default:// TODO: maybe include other cases?
+          //     startPos=new Vec2(-0.5, 0.5);
+          // }
+          // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+          const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+          // TODO: i don't know why this works
+          // set startPos - the point where the path begins drawing
+          // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
+          
+          const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
+          // for (var ttr = 0; ttr < tilingTransforms.length; ttr++) {
+          // for (var ttr = 0; ttr < 1; ttr++) {
+          // console.log(tilingTransformNumber);
+          for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {
+            let transf=tilingTransforms[ttr];
+            //define the tiles' contact point as the beginning of the boundary
+            let curPos=startPos;
+            
+            ctx.beginPath();
+            // ctx.moveTo(curScreenPos.x, curScreenPos.y);
+            let edgeWord=this.getEdgeWord();
+            
+            for (var j = 0; j < tileOrder; j++) {
+              for (var i = 0; i < edgeWord.length; i++) {
+                let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
+                curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
+                
+                let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
+                let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+                // let curScreenPos=transf.applyTo(curPos.mult(1/edgeVector.len())).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation
+                // let curScreenPos=transf.applyTo(curPos.mult(1/maxDistFromCenter)).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//individual display
+                // let curScreenPos=transf.applyTo(curPos).mult(settings.DSFRelativeRadius/maxDistFromCenter).add(settings.pos).screen();//individual
+                ctx.lineTo(curScreenPos.x, curScreenPos.y);
+              }
+            }
+            ctx.closePath();
+            ctx.fill("evenodd");
+            ctx.stroke();
+            // ctx.stroke();//double for less jagged look
+          }
+          // //debug point at center of canvas
+          // context.fillStyle="#f00";
+          // context.fillRect(canvas.width/2-1.5, canvas.height/2-1.5, 3, 3);
         }
-        // console.log(maxDistFromCenter);
+        else {
+          let ctx=settings.context;
+          ctx.lineWidth=1;
+          ctx.strokeStyle=settings.strokeStyle;
+          ctx.fillStyle=settings.fillStyle;
+          
+          let edgeVector=this.getEdgeVector();
+          let maxDistFromCenter;
+          if (settings.useDistFromCenter) {
+            maxDistFromCenter=this.getMaxDistFromCenter();
+          }
+          // console.log(maxDistFromCenter);
+          
+          // let segLen=1/maxDistFromCenter;
+          const segLen=this.segmentLength;
+          // const segLen=(-colorChangeSteps/500%1+1)%1 *0.1;
+          // const segLen=(-colorChangeSteps/50%1+1)%1 *0.2;
+          // const segLen=(-colorChangeSteps/50%1+1)%1 *0.05;
+          
+          // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+          // const startPos=new Vec2(-0.5*Math.cot(PI/tileOrder), 0.5).mult(edgeVector.len());// TODO: untested
+          // TODO: i don't know why this works
+          // set startPos - the point where the path begins drawing - as one of the vertices of the central tile
+          // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
+          
+          // const startPos=new Vec2();
+          
+          // const startingAng=0;
+          // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
+          const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;
+          let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
+          const startingLen=0;// TODO: will 0 cause problems? if not, simplify the rest of the code
+          // const startingLen=0.0001;
+          // const startingLen=0.3;
+          // const startingLen=centerToVertexEuc;
+          // console.log(startingLen);
+          // const startPos=Vec2FromAngleAndHypLength(startingAng, startingLen);
+          // const startPos=Vec2FromAngleAndHypLength(PI-globalEdgeAngleOffset-PI/schlafliQ, startingLen);
+          // const startPos=Vec2FromAngleAndHypLength(0, startingLen);
+          // const startPos=Vec2FromAngleAndHypLength(0, centerToVertexHyp);
+          const startPos=hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2());
+          
+          const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
+          
+          // let edgeWord=this.getBoundaryWord();
+          let edgeWord=this.getEdgeWord();
+          let edgeWordLength=edgeWord.length;
+          for (var j = 1; j < tileOrder; j++) {
+            for (var i = 0; i < edgeWordLength; i++) {
+              edgeWord.push(edgeWord[i]+j);
+            }
+          }
+          // let differenceWord=[];// TODO: make more efficient with a single difference word
+          // for (var i = 1; i < edgeWordLength; i++) {
+          //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
+          // }
+          // console.log(edgeWord);
+          
+          for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition) // TODO: maybe first calculate all the points once and then loop over the transformations {and the points}
+            let transf=tilingTransforms[ttr];
+            //define the tiles' contact point as the beginning of the boundary
+            let curPos=startPos;
+          
+            ctx.beginPath();
+            // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
+            // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).screen();
+            let curScreenPos=transf.applyTo(curPos).screen();// TODO: i think this only helps when pathPoincareEdge fails
+            ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
+            
+            // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
+            
+            
+            // let innerTurnAngBonus=PI+0.00001;
+            // let innerTurnAngBonus=0.00001;
+            // let innerTurnAngBonus=startingAng;
+            let innerTurnAngBonus=0;
+            let runningAng=startingAng;
+            let runningLen=startingLen;// TODO: just set to 0?
+            // let lastPosTransformed=transf.applyTo(startPos);
+            let lastPosTransformed=transf.applyTo(startPos);
+            let curPosTransformed=new Vec2();
         
-        // let segLen=1/maxDistFromCenter;
-        const segLen=this.segmentLength;
-        // const segLen=(-colorChangeSteps/500%1+1)%1 *0.1;
-        // const segLen=(-colorChangeSteps/50%1+1)%1 *0.2;
-        // const segLen=(-colorChangeSteps/50%1+1)%1 *0.05;
-        
-        // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
-        // const startPos=new Vec2(-0.5*Math.cot(PI/tileOrder), 0.5).mult(edgeVector.len());// TODO: untested
-        // TODO: i don't know why this works
-        // set startPos - the point where the path begins drawing - as one of the vertices of the central tile
-        // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
-        
-        // const startPos=new Vec2();
-        
-        // const startingAng=0;
-        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
-        const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;
-        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
-        const startingLen=0;// TODO: will 0 cause problems? if not, simplify the rest of the code
-        // const startingLen=0.0001;
-        // const startingLen=0.3;
-        // const startingLen=centerToVertexEuc;
-        // console.log(startingLen);
-        // const startPos=Vec2FromAngleAndHypLength(startingAng, startingLen);
-        // const startPos=Vec2FromAngleAndHypLength(PI-globalEdgeAngleOffset-PI/schlafliQ, startingLen);
-        // const startPos=Vec2FromAngleAndHypLength(0, startingLen);
-        // const startPos=Vec2FromAngleAndHypLength(0, centerToVertexHyp);
-        const startPos=hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2());
-        
-        const tilingTransformNumber=settings.useTilingTransforms ? tilingTransforms.length : 1;//how many of the tiling transforms are going to be used to repeatedly draw the tile
-        
-        // let edgeWord=this.getBoundaryWord();
-        let edgeWord=this.getEdgeWord();
-        let edgeWordLength=edgeWord.length;
-        for (var j = 1; j < tileOrder; j++) {
-          for (var i = 0; i < edgeWordLength; i++) {
-            edgeWord.push(edgeWord[i]+j);
+            // for (var j = 0; j < tileOrder; j++) {
+              for (var i = 0; i < edgeWord.length; i++) {
+                let innerTurnAng=0;
+                if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+                  innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works
+                  // console.log("edgeWord[i]-edgeWord[i-1]", edgeWord[i]-edgeWord[i-1]);
+                }
+                let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+                
+                // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+                
+                // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+                innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
+                let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
+                let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+                
+                // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
+                // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+                
+                runningAng+=runningAngChange;
+                runningLen=newRunningLen;
+                // console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
+                curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
+                // console.log(curPos);
+                
+                // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
+                let scaledCurPos=curPos;
+                // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
+                
+                // curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();
+                curPosTransformed=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(scaledCurPos));
+                
+                // ctx.lineTo(curScreenPos.x, curScreenPos.y);
+                
+                // console.log(ttr, lastPosTransformed, curPosTransformed);
+                // pathPoincareEdge(lastPosTransformed, curPosTransformed);
+                pathPoincareEdge(curPosTransformed, lastPosTransformed);// TODO: whyyyyy this order??? should i simultaneously refactor this call, the function, and other calls?
+                
+                lastPosTransformed=curPosTransformed;
+              }
+            // }
+            
+            // console.log(curScreenPos);
+            // ctx.fillStyle="#ff09";
+            // ctx.fillRect(curScreenPos.x-3, curScreenPos.y-3, 6, 6);
+            // ctx.fillStyle="#9999";
+            // let endScreenPos=curPos.screen();
+            // ctx.fillRect(endScreenPos.x-3, endScreenPos.y-3, 6, 6);
+            // ctx.fillStyle="#f119";
+            // let edgeEndScreenPos=Vec2FromAngleAndHypLength(globalEdgeAngleOffset, edgeLengthHyp).screen();
+            // ctx.fillRect(edgeEndScreenPos.x-3, edgeEndScreenPos.y-3, 6, 6);
+            
+            // ctx.closePath();
+            // ctx.fill("evenodd");
+            ctx.stroke();
           }
         }
-        // let differenceWord=[];// TODO: make more efficient with a single difference word
-        // for (var i = 1; i < edgeWordLength; i++) {
-        //   edgeWord.push(edgeWord[i]-edgeWord[i-1]);
-        // }
-        // console.log(edgeWord);
         
-        for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition) // TODO: maybe first calculate all the points once and then loop over the transformations {and the points}
-          let transf=tilingTransforms[ttr];
-          //define the tiles' contact point as the beginning of the boundary
-          let curPos=startPos;
         
-          ctx.beginPath();
-          // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
-          // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).screen();
-          let curScreenPos=transf.applyTo(curPos).screen();// TODO: i think this only helps when pathPoincareEdge fails
-          ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
-          
-          // let curPosTransformed=transf.applyTo(curPos);// TODO: would be better than above, but currently it's just the origin (also this isn't tested)
-          
-          
-          // let innerTurnAngBonus=PI+0.00001;
-          // let innerTurnAngBonus=0.00001;
-          // let innerTurnAngBonus=startingAng;
-          let innerTurnAngBonus=0;
-          let runningAng=startingAng;
-          let runningLen=startingLen;// TODO: just set to 0?
-          // let lastPosTransformed=transf.applyTo(startPos);
-          let lastPosTransformed=transf.applyTo(startPos);
-          let curPosTransformed=new Vec2();
-        
-          // for (var j = 0; j < tileOrder; j++) {
-            for (var i = 0; i < edgeWord.length; i++) {
-              let innerTurnAng=0;
-              if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
-                innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works
-                // console.log("edgeWord[i]-edgeWord[i-1]", edgeWord[i]-edgeWord[i-1]);
-              }
-              let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
-              
-              // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
-              
-              // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
-              innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
-              let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
-              let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
-              
-              // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
-              // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
-              
-              runningAng+=runningAngChange;
-              runningLen=newRunningLen;
-              // console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
-              curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
-              // console.log(curPos);
-              
-              // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
-              let scaledCurPos=curPos;
-              // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
-              
-              // curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();
-              curPosTransformed=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(scaledCurPos));
-              
-              // ctx.lineTo(curScreenPos.x, curScreenPos.y);
-              
-              // console.log(ttr, lastPosTransformed, curPosTransformed);
-              // pathPoincareEdge(lastPosTransformed, curPosTransformed);
-              pathPoincareEdge(curPosTransformed, lastPosTransformed);// TODO: whyyyyy this order??? should i simultaneously refactor this call, the function, and other calls?
-              
-              lastPosTransformed=curPosTransformed;
-            }
-          // }
-          
-          // console.log(curScreenPos);
-          // ctx.fillStyle="#ff09";
-          // ctx.fillRect(curScreenPos.x-3, curScreenPos.y-3, 6, 6);
-          // ctx.fillStyle="#9999";
-          // let endScreenPos=curPos.screen();
-          // ctx.fillRect(endScreenPos.x-3, endScreenPos.y-3, 6, 6);
-          // ctx.fillStyle="#f119";
-          // let edgeEndScreenPos=Vec2FromAngleAndHypLength(globalEdgeAngleOffset, edgeLengthHyp).screen();
-          // ctx.fillRect(edgeEndScreenPos.x-3, edgeEndScreenPos.y-3, 6, 6);
-          
-          // ctx.closePath();
-          // ctx.fill("evenodd");
-          ctx.stroke();
-        }
       }
       this.drawToWholeScreen=function() {
         let settings=new DSFDrawingSettings();
@@ -1305,15 +1301,25 @@
 
     // var curDSF=new DSF([], [0]);
     // curDSF=curDSF.extend0();
-    var curDSF=new DSF([0], []);
+    var curDSF=new DSF([0], []);// TODO: DSF([0], []) doesn't draw correctly in {5, 4}
     curDSF=curDSF.extend1();
+    curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
     // curDSF=curDSF.swap1();// TODO: generation seems broken // TODO: why did i write that???
-    // curDSF=curDSF.swap0();
     // curDSF=curDSF.swap1();
-    curDSF=curDSF.extend0();
+    // curDSF=curDSF.extend0();
     // curDSF=curDSF.swap0();
     // curDSF=curDSF.extend1();
+    // curDSF=curDSF.swap1();
     // curDSF=curDSF.extend0();
+    // curDSF=curDSF.swap0();
     // curDSF=curDSF.swap1();
     // curDSF=curDSF.trimIfPossible();
     // logCurDSFInfo();
@@ -1330,7 +1336,7 @@
       // changeMirrorAngle(Math.tan(edgeVec.ang()));
     }
     var resultingDSFArray=[];
-    function generateDSFGrid() {
+    function generateDSFGrid() {// TODO: hyperbolic tile support
       const gridHeight=4;
       const gridWidth=Math.floor(gridHeight*canvas.width/canvas.height);
       const numToGenerate=gridHeight*gridWidth;
@@ -1394,7 +1400,9 @@
           if (wordIndex>=resultingDSFArray.length) {//ran out of tiles! (normally shouldn't be possible)
             return undefined;
           }
-          settings.pos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight);
+          // settings.pos=new Vec2((j*2-gridWidth+1)/gridHeight, (i*2-gridHeight+1)/gridHeight);// TODO: why was this mirrored vertically? something might be messed up elsewhere... (or maybe i want positive y to be downwards?)
+          settings.pos=new Vec2((j*2-gridWidth+1)/gridHeight, -(i*2-gridHeight+1)/gridHeight);
+          // console.log(settings.pos);
           resultingDSFArray[wordIndex].drawWithSettings(settings);
 
           ////debug points (centers of tiles)
@@ -1786,11 +1794,16 @@
       return 2*Math.atanh(r);
     }
 
-    function Polygon () {// TODO: classes with push, not weird index saving
+    function Polygon() {// TODO: classes with push, not weird index saving
       this.numNext=0;
       this.next=[];
       this.numVerts=0;
       this.verts=[];
+      this.layer=0;
+      // this.centerPos=new Vec2();
+      this.centerAngFromXAxis=0;
+      this.centerToOriginHyp=0;
+      this.vertexOffsetAngle=0;//angle by which to rotate the polygon so that one of its vertices would be horizontal relative to its center // TODO: i don't know what that means in the hyperbolic plane
       this.addNext=function (n) {
         this.next[this.numNext]=n;
         this.numNext++;
@@ -1800,7 +1813,7 @@
         this.numVerts++;
       }
     };
-    function Vert () {
+    function Vert() {
       this.numNext=0;
       this.next=[];
       this.numPolys=0;
@@ -2016,11 +2029,11 @@
     function changeMirrorAngle(slope) {
       console.log(slope, typeof(slope));
       if (typeof(slope)=="undefined") {
-        // console.log("a");// TODO: on program start "a" gets called twice, then "b" gets called
+        console.log("a");// TODO: on program start "a" gets called twice, then "b" gets called
         mirrorM=mirrorAngleInputOptionsArr[curMirrorAngleInput][1](document.getElementById("mirror-angle-number-input-"+curMirrorAngleInput).value);
       }
       else {
-        // console.log("b");
+        console.log("b");
         mirrorM=slope;
       }
 
@@ -2167,29 +2180,29 @@
           ]
           break;
         case "regular using schlafli":// TODO: generalize with schlafli symbol input, then i can get rid of square, hex and tri
-          // let schlafliP=7; let schlafliQ=3;
-          // let schlafliP=3; let schlafliQ=7;
-          // let schlafliP=5; let schlafliQ=6;
-          // let centerToVertexEuc=1.1;
+          // tilingTransforms=[];
+          tilingTransforms=[new HypTransform()];
           
-          // //formula taken from http://www.malinc.se/noneuclidean/en/poincaretiling.php#formula on 16.07.2021
-          // let centerToVertexEuc=Math.sqrt((Math.tan(HPI - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(HPI - PI / schlafliQ) + Math.tan(PI / schlafliP)));
-          //
-          // //convert euclidean distance to hyperbolic distance
-          // centerToVertexEuc=centerToVertexHyp;
+          // for (var i = 0; i < schlafliP; i++) {//only the central tile and its neighbors
+          //   tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
+          // }
           
-          //i need the distance to the edge midpoint, not to the vertex
-          let centerToEdgeMidpointEuc=Math.asinh(Math.sin(PI/schlafliQ)*Math.sinh(centerToVertexEuc)) // TODO: attribute hyperbolic trigonometry formula to https://en.wikipedia.org/wiki/Hyperbolic_triangle
+          for (var i = 1; i < numPolys; i++) {
+          // for (var i = 0; i < numPolys; i++) {
+            // let curPos=V[P[i].verts[0]].pos;
+            // let curPos=V[P[i].verts[0]].pos.add(V[P[i].verts[Math.floor(schlafliP/2)]].pos).div(2);
+            // let curPos=Vec2FromAngleAndHypLength(P[i].centerAngFromXAxis, P[i].centerToOriginHyp);
+            let posArr=[];
+            for (var j = 0; j < P[i].verts.length; j++) {
+              let curPos=V[P[i].verts[j]].pos;
           
-          tilingTransforms=[
-            new HypTransform()
-          ]
-          for (var i = 0; i < schlafliP; i++) {
-            // tilingTransforms.push(new HypTransform(TAU*i/schlafliP, centerToVertexEuc, PI+TAU*i/schlafliP));//doesn't work because i need center to edge midpoint
-            // tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointEuc, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
-            // tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP+Math.tan(mirrorM)));
-            tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
+              posArr.push();
+            }
+            // tilingTransforms.push(new HypTransform(curPos.ang(), eucToHypDist(curPos.len()), PI+TAU*i/schlafliP+P[i].vertexOffsetAngle));
+            // tilingTransforms.push(new HypTransform(curPos.ang(), eucToHypDist(curPos.len()), P[i].vertexOffsetAngle));
+            tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
           }
+          
           // console.log(tilingTransforms);
           break;
         default:
@@ -2348,7 +2361,7 @@
       fillColorWithErase=savedColor;
       drawSize=savedSize;
     }
-    function drawFromCurDSF() {//draw the current DSF using .drawToWholeScreen()
+    function drawFromCurDSF() {//draw the current DSF using .drawToWholeScreen() or make a list with curDSF and operations on it
       // TODO: controlled by user
       curDSF.drawToWholeScreen();
       // generateDSFGrid();
@@ -2480,7 +2493,8 @@
           document.getElementById("schlafli-input-container").style.backgroundColor="rgb(240, 80, 80)";
         }
       
-      if (true){// INITIAL object definition (first polygon and vertices with positions)
+      // TODO: where is this all from? (i figured a lot of it out, but there must be something to cite)
+      if (true){// INITIAL object definition (first polygon and vertices with positions)// TODO: separate function for this (and only do it if schlafliSymbol changed)
         P=[new Polygon()];//Polygons array
         V=[];//Vertices array
         for (var i = 0; i < schlafliP; i++)
@@ -2531,7 +2545,7 @@
           // let offsetAng=0; let offsetX=0.001; let offsetY=0.002;//stable
           // let offsetAng=0.001; let offsetX=0.0001; let offsetY=0.00002;//extra stable?
           // let offsetAng=0.05; let offsetX=0; let offsetY=0;//newly stable
-          let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for polygon checking)
+          let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for metasquares polygon checking)
           // let offsetAng=0; let offsetX=0; let offsetY=0;// TODO: why doesn't it work?
 
           // let offsetAng=0.001; let offsetX=0; let offsetY=0;
@@ -2539,9 +2553,9 @@
           V[i].setPos(new Vec2(radius*d*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -radius*d*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
         }
       }
-      // TODO: this stuff is calculated but isn't used (i probably will want to use it as a drawing guide and maybe for tilingTransforms generation)
-      for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
-        // for (var k=0; k<2; k++) {//polygons
+      // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
+      for (var k=0; k<2; k++) {// GRAPH generation
+        // for (var i=0; i<0; i++) {//edges
         for (var i=0; i<schlafliP; i++) {//edges
           //don't make new polygon towards parent
           if (P[k].numNext>0 && i==0) continue;
@@ -2552,6 +2566,7 @@
           if (V[v1].numPolys==schlafliQ || V[v2].numPolys==schlafliQ) continue;
 
           P[numPolys]=new Polygon();
+          P[numPolys].layer=P[k].layer+1;// TODO: untested and unused
 
           //neighborship of new polygon and its parent
           P[k].addNext(numPolys);
@@ -2611,7 +2626,6 @@
         }
       }
       for (var i=0; i<numVerts; i++) {// ORDER the vertices
-        // console.log("i=", i, "!!!!!");
         let curV=V[i];
         var j=0;
         for (; j < curV.polys.length; j++) {
@@ -2792,9 +2806,39 @@
         // console.log("");
       }
       for (var i=1; i<numPolys; i++) {// CALCULATE vertex positions
+        console.log("%c"+P[i].next[0]+":", "font-size:160%; color:lime", i);
         let v1=P[i].verts[0];
         let v2=P[i].verts[1];
         let parentPoly=P[P[i].next[0]];
+        
+        // centerAngFromXAxis, centerToOriginHyp, vertexOffsetAngle
+        let parentVertIndex=indexOfElement(parentPoly.verts, P[i].verts[0]);
+        let angleOriginToParentToChild=PI+parentPoly.centerAngFromXAxis+(0.5-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;
+        // let angleOriginToParentToChild=(parentVertIndex+0.5)*TAU/schlafliP+P[k].vertexOffsetAngle;// TODO: won't work, it's a simplified version of the above line
+        // console.log("parentPoly.centerAngFromXAxis", parentPoly.centerAngFromXAxis, "parentVertIndex", parentVertIndex, "(0.5-parentVertIndex)*TAU/schlafliP", (0.5-parentVertIndex)*TAU/schlafliP, "parentPoly.vertexOffsetAngle", parentPoly.vertexOffsetAngle, "angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
+        // console.log("angleOriginToParentToChild", angleOriginToParentToChild);
+        if (i<=schlafliP) {//the surrounding of the first tile // TODO: shouldn't be necessary, here for bugfixing
+        // if (false) {
+          P[i].centerAngFromXAxis=(0.5-i)*TAU/schlafliP;
+          P[i].centerToOriginHyp=2*centerToEdgeMidpointHyp;
+          P[i].vertexOffsetAngle=PI+TAU*i/schlafliP;
+          // P[i].vertexOffsetAngle=TAU*(1-i)/schlafliP;
+          // console.log(P[i].centerAngFromXAxis);
+          // console.log(i, P[i].next[0], P[i].vertexOffsetAngle);
+        }
+        else {
+          P[i].centerAngFromXAxis=parentPoly.centerAngFromXAxis-hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
+          P[i].centerToOriginHyp=hypSASGetThirdEdge(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
+          
+          // P[i].vertexOffsetAngle=0;
+          P[i].vertexOffsetAngle=new HypTransform(P[i].centerAngFromXAxis, -P[i].centerToOriginHyp).applyTo(V[P[i].verts[0]].pos).ang();
+          
+          // console.log("angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
+          // console.log(P[i].centerAngFromXAxis);
+          // console.log(P[i].centerToOriginHyp);
+          // console.log(i, P[i].next[0], P[i].centerToOriginHyp);
+        }
+        console.log(P[i].vertexOffsetAngle);
 
         let prevC, newR;
 
@@ -2870,7 +2914,7 @@
       // }
       // console.log("numVerts", numVerts);
       // console.log("numPolys", numPolys);
-
+      
       // drawHypGrid();// TODO: turn on hyperbolic grid
       drawFromCurDSF();
     }
@@ -2911,20 +2955,22 @@
     
     // TODO: these functions (that need to be run at program start) are a mess (restart called twice etc etc)
     
+    changeTilingType();
     autoGenerateButtonClickability();
     clearAll();
     // changeMirrorAngle();
     
     setDrawingToCurDSF();
     
-    resizeWithWait();
     initialDrawingReady=true;
     autoGenerateButtonClickability();
     restart();
+    resizeWithWait();
     
     changeTilingType();
     
     restart();
+    // setDrawingToCurDSF();
     
     update();
     
