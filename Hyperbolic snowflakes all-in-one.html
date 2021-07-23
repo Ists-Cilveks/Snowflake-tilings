@@ -185,10 +185,6 @@
       width: 25%;
     }
 
-    #tile-order-input {
-      font-size: 105%;
-    }
-
     .color-select-option {
       width: 13vw;
       height: 3.5vh;
@@ -256,9 +252,6 @@
         <span class="simple-button draw-size-option" onclick="drawSize=3">3px</span>
         <span class="simple-button draw-size-option" onclick="drawSize=10">10px</span>
         <span class="simple-button draw-size-option" onclick="drawSize=30">30px</span>
-      </div>
-      <div style="padding-left:2%"><!-- tile order input -->
-        <span style="font-size: 95%">Rotational order </span><input style="width:15%" id="tile-order-input" min="1" type="number" step="1" value="0" onchange="changeTileOrder()">
       </div>
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
 
@@ -398,7 +391,6 @@
       var changingContext=changingCanvas.getContext("2d");
       var dropBtn=document.getElementById("drop-btn");
       var useMirrorsButton=document.getElementById("use-mirrors-button");
-      var tileOrderInput=document.getElementById("tile-order-input");
       var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
       var mirrorAngleContainer=document.getElementById("mirror-angle-container");
       
@@ -434,7 +426,7 @@
       var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
       
       // var schlafliSymbol=[5, 4];
-      var schlafliSymbol=[4, 5];
+      // var schlafliSymbol=[4, 5];
       // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[7, 3];
@@ -445,8 +437,9 @@
       // var schlafliSymbol=[4, 4];
       
       // var schlafliSymbol=[6, 3];
-      // var schlafliSymbol=[3, 7];
+      var schlafliSymbol=[3, 7];
       // var schlafliSymbol=[6, 4];
+      // var schlafliSymbol=[8, 4];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[10, 10];
       // var schlafliSymbol=[6, 4];
@@ -457,20 +450,11 @@
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
       
-      
-      // var tileOrder= 4 ;
-      // var tilingTypeIndex=1;//square
-      // var tileOrder= 6 ;
-      // var tilingTypeIndex=2;//hex
-      // var tileOrder= 3 ;
-      // var tilingTypeIndex=3;//tri
-      var tileOrder= schlafliP ;
-      // var tilingTypeIndex=4;//hypTest
-      var tilingTypeIndex=5;//hyperbolic grid
       // var tilingTypeIndex=0;//single tile
+      // var tilingTypeIndex=1;//hypTest
+      var tilingTypeIndex=2;//hyperbolic grid
       
-      tileOrderInput.value=tileOrder;//set tileOrderInput accordingly
-      var tilingTypes=[["none"], ["square"], ["hex"], ["tri"], ["hypTest"], ["regular using schlafli"]];
+      var tilingTypes=[["none"], ["hypTest"], ["regular using schlafli"]];
       for (var i = 0; i < tilingTypes.length; i++) {
         let t=tilingTypes[i];//the current tiling type
         document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
@@ -529,13 +513,13 @@
       
       function canAutoGenerateGeometrically() {// TODO: not finished, tested or used
         // return initialDrawingReady && (
-        //   (tileOrder==6 && tilingTypeName=="hex") ||
-        //   (tileOrder==4 && tilingTypeName=="square")
+        //   (schlafliP==6 && schlafliQ==3) ||
+        //   (schlafliP==4 && schlafliQ==4)
         // );
-        return initialDrawingReady && tileOrder==6 && tilingTypeName=="hex" && useMirrors;
+        return initialDrawingReady && schlafliP==6 && schlafliQ==3 && useMirrors;
       }
       function autoGenerateButtonClickability() {//update whether the tiling auto-generation button can be clicked or is greyed out
-        // let clickability=(initialDrawingReady && tileOrder==6 && tilingTypeName=="hex");
+        // let clickability=(initialDrawingReady && schlafliP==6 && schlafliQ==3);
         let clickability=canAutoGenerateGeometrically();
         autoGenerateButton.disabled=!clickability;
       }
@@ -598,10 +582,10 @@
 
       return {u: u, v: v};
     }
-    function wordRho(r, w) {//rotate the word w by r (add r to each element, modulo the tileOrder)
+    function wordRho(r, w) {//rotate the word w by r (add r to each element, modulo the schlafliP)
       let res=[];
       for (var i = 0; i < w.length; i++) {
-        // res[i]=((w[i]+r)%tileOrder+tileOrder)%tileOrder;
+        // res[i]=((w[i]+r)%schlafliP+schlafliP)%schlafliP;
         res[i]=w[i]+r;// TODO: is it really this simple to make the tiles work with negative numbers?! this will have to be noted
       }
       return res;
@@ -634,7 +618,7 @@
     }
     function DSF(w0, w1, operatorTrace=[]) {//class for a modification of a double square factorization (restricted with symmetry but generalized with different tilings TODO: it's not really DSF, but some modification/generalization of it, i should rename the class). most of the algorithms here are from ComProp
       // TODO: this is a wall of code
-      // TODO: add a tileOrder property (because maybe i want to generate and display tiles that aren't selected for user drawing)
+      // TODO: add a schlafliP property (because maybe i want to generate and display tiles that aren't selected for user drawing)
       this.w0=w0.slice();
       this.w1=w1.slice();
       this.segmentLength=1;
@@ -805,9 +789,9 @@
       this.getBoundaryWord=function() {//get w0 concat w1 concat wordRho(1, w0) concat wordRho(1, w1) ...  (the whole boundary)
         let edgeWord=this.getEdgeWord();
         let res=edgeWord.slice();//copy of edgeWord
-        for (var i = 1; i < tileOrder; i++) {
+        for (var i = 1; i < schlafliP; i++) {
           for (var j = 0; j < edgeWord.length; j++) {// TODO: use wordRho instead of extra loop
-            res.push((edgeWord[j]+i)%tileOrder);
+            res.push((edgeWord[j]+i)%schlafliP);
           }
         }
         return res;
@@ -816,13 +800,13 @@
         let edgeVector=new Vec2();
         let edgeWord=this.getEdgeWord();
         for (var i = 0; i < edgeWord.length; i++) {
-          edgeVector=new Vec2(edgeVector.x+Math.cos(edgeWord[i]*TAU/tileOrder), edgeVector.y-Math.sin(edgeWord[i]*TAU/tileOrder));
+          edgeVector=new Vec2(edgeVector.x+Math.cos(edgeWord[i]*TAU/schlafliP), edgeVector.y-Math.sin(edgeWord[i]*TAU/schlafliP));
         }
         return edgeVector;
       }
       this.getMaxDistFromCenter=function() {//distance from the farthest vertex to the center of the tile
         let edgeVec=this.getEdgeVector();
-        let center=edgeVec.rotate(HPI-PI/tileOrder).mult(1/(2*Math.sin(PI/tileOrder)));//vector to the center of the tile
+        let center=edgeVec.rotate(HPI-PI/schlafliP).mult(1/(2*Math.sin(PI/schlafliP)));//vector to the center of the tile
         // console.log(edgeVec, center);
         // console.log(edgeVec.len()/center.len());
         // console.log(center.ang()-edgeVec.ang());
@@ -830,7 +814,7 @@
         let curPos=new Vec2();
         let maxSqDist=0;
         for (var i = 0; i < edgeWord.length; i++) {
-          curPos=new Vec2(curPos.x+Math.cos(edgeWord[i]*TAU/tileOrder), curPos.y-Math.sin(edgeWord[i]*TAU/tileOrder));
+          curPos=new Vec2(curPos.x+Math.cos(edgeWord[i]*TAU/schlafliP), curPos.y-Math.sin(edgeWord[i]*TAU/schlafliP));
           let curSqDist=curPos.sqDist(center);
           if (maxSqDist<curSqDist) maxSqDist=curSqDist;
         }
@@ -913,7 +897,7 @@
         let runningLen=0;
         let runningAng=0;
         let innerTurnAngBonus=0;
-        // for (var j = 0; j < tileOrder; j++) {
+        // for (var j = 0; j < schlafliP; j++) {
         for (var i = 0; i < edgeWord.length; i++) {
           let innerTurnAng=0;
           if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
@@ -959,7 +943,7 @@
           let runningLen=0;
           let runningAng=0;
           let innerTurnAngBonus=0;
-          // for (var j = 0; j < tileOrder; j++) {
+          // for (var j = 0; j < schlafliP; j++) {
           for (var i = 0; i < edgeWord.length; i++) {
             let innerTurnAng=0;
             if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
@@ -1012,9 +996,9 @@
           
           // let segLen=1/maxDistFromCenter;
           const edgeAngleOffset=edgeVector.ang()+HPI;
-          // let startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5);// TODO: i don't know why this works
+          // let startPos=new Vec2(0.5*Math.tan(HPI-PI/schlafliP), 0.5);// TODO: i don't know why this works
           // let startPos=new Vec2();
-          // switch (tileOrder) {
+          // switch (schlafliP) {
           //   case 6:
           //     startPos=new Vec2(ROOT3/2, 0.5);
           //     break;
@@ -1028,7 +1012,7 @@
           //     startPos=new Vec2(-0.5, 0.5);
           // }
           // startPos=startPos.mult(edgeVector.len());//scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
-          const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
+          const startPos=new Vec2(0.5*Math.tan(HPI-PI/schlafliP), 0.5).mult(edgeVector.len());
           // TODO: i don't know why this works
           // set startPos - the point where the path begins drawing
           // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an ecge length of edgeVector.len())
@@ -1046,9 +1030,9 @@
             // ctx.moveTo(curScreenPos.x, curScreenPos.y);
             let edgeWord=this.getEdgeWord();
             
-            for (var j = 0; j < tileOrder; j++) {
+            for (var j = 0; j < schlafliP; j++) {
               for (var i = 0; i < edgeWord.length; i++) {
-                let ang=(edgeWord[i]+j)*TAU/tileOrder+edgeAngleOffset;
+                let ang=(edgeWord[i]+j)*TAU/schlafliP+edgeAngleOffset;
                 curPos=new Vec2(curPos.x+Math.cos(ang), curPos.y-Math.sin(ang));
                 
                 let scaledCurPos=curPos.mult(settings.useDistFromCenter  ?  (1/maxDistFromCenter)  :  (1/edgeVector.len()))
@@ -1087,8 +1071,8 @@
           // const segLen=(-colorChangeSteps/50%1+1)%1 *0.2;
           // const segLen=(-colorChangeSteps/50%1+1)%1 *0.05;
           
-          // const startPos=new Vec2(0.5*Math.tan(HPI-PI/tileOrder), 0.5).mult(edgeVector.len());
-          // const startPos=new Vec2(-0.5*Math.cot(PI/tileOrder), 0.5).mult(edgeVector.len());// TODO: untested
+          // const startPos=new Vec2(0.5*Math.tan(HPI-PI/schlafliP), 0.5).mult(edgeVector.len());
+          // const startPos=new Vec2(-0.5*Math.cot(PI/schlafliP), 0.5).mult(edgeVector.len());// TODO: untested
           // TODO: i don't know why this works
           // set startPos - the point where the path begins drawing - as one of the vertices of the central tile
           // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
@@ -1115,7 +1099,7 @@
           // let edgeWord=this.getBoundaryWord();
           let edgeWord=this.getEdgeWord();
           let edgeWordLength=edgeWord.length;
-          for (var j = 1; j < tileOrder; j++) {
+          for (var j = 1; j < schlafliP; j++) {
             for (var i = 0; i < edgeWordLength; i++) {
               edgeWord.push(edgeWord[i]+j);
             }
@@ -1150,7 +1134,7 @@
             let lastPosTransformed=transf.applyTo(startPos);
             let curPosTransformed=new Vec2();
         
-            // for (var j = 0; j < tileOrder; j++) {
+            // for (var j = 0; j < schlafliP; j++) {
               for (var i = 0; i < edgeWord.length; i++) {
                 let innerTurnAng=0;
                 if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
@@ -1241,13 +1225,13 @@
         let word=this.getBoundaryWord();
         for (var i = 0; i < word.length; i++) {
           let prevLetter= i==0 ? word[word.length-1] : word[i-1];
-          let curTurn=mod(word[i]-prevLetter, tileOrder);// (w[i]-w[i-1]) % tileOrder
-          if (curTurn!=tileOrder/2) {
-            if (curTurn>tileOrder/2) curTurn-=tileOrder;
+          let curTurn=mod(word[i]-prevLetter, schlafliP);// (w[i]-w[i-1]) % schlafliP
+          if (curTurn!=schlafliP/2) {
+            if (curTurn>schlafliP/2) curTurn-=schlafliP;
             T+=curTurn;
           }
         }
-        return T/tileOrder;
+        return T/schlafliP;
       }
       this.isValidInSomeNotYetClearWay=function() {// TODO:
         let edge0=this.w0.slice().concat(this.w1);
@@ -1302,8 +1286,8 @@
     // var curDSF=new DSF([], [0]);
     // curDSF=curDSF.extend0();
     var curDSF=new DSF([0], []);// TODO: DSF([0], []) doesn't draw correctly in {5, 4}
-    curDSF=curDSF.extend1();
-    curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
+    // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
@@ -2003,7 +1987,7 @@
 
     function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
       inTileTransforms=[];
-      let s=tileOrder;
+      let s=schlafliP;
       for (var i = 0; i < s; i++) {
         var ang=i*TAU/s;
         inTileTransforms.push([Math.cos(ang), Math.sin(ang), -Math.sin(ang), Math.cos(ang)]);
@@ -2037,8 +2021,8 @@
         mirrorM=slope;
       }
 
-      // TODO: other tileOrders should also be supported
-      if (tileOrder==6) {//make mirrorM between 0 and ROOT3/6 (angle between 0 and 30deg)
+      // TODO: other schlafliP values should also be supported
+      if (schlafliP==6) {//make mirrorM between 0 and ROOT3/6 (angle between 0 and 30deg)
         // TODO: fairly untested
         for (var i = 0; i < 2 && mirrorM>=1/ROOT3; i++) {
           mirrorM=(mirrorM-1/ROOT3)/(1+mirrorM/ROOT3);
@@ -2076,99 +2060,18 @@
       clearAll();
     }
     function changeTileOrder() {
-      tileOrder=parseInt(tileOrderInput.value);
       autoGenerateButtonClickability();
       setInTileTransforms();
       clearAll();
     }
 
     // TODO: dynamically set as many as are needed with the current canvas size
-    // TODO: scaling based on selected tiling (some naturally appear bigger than others due to unit edge lengths and different polygons)
+    // TODO: scaling based on selected tiling (some euclidean tilings naturally appear bigger than others due to unit edge lengths and different polygons)
     function setTilingTransforms() {
       // console.trace("setTilingTransforms");
       switch (tilingTypeName) {
         case "none":
           tilingTransforms=[new Affine2()];
-          break;
-        case "square":
-          tilingTransforms=[
-            new Vec2(0, 0),
-
-            new Vec2(-2, -1),
-            new Vec2(-2, 0),
-            new Vec2(-2, 1),
-
-            new Vec2(-1, -1),
-            new Vec2(-1, 0),
-            new Vec2(-1, 1),
-
-            new Vec2(0, -1),
-
-            new Vec2(0, 1),
-
-            //not so necessary
-            new Vec2(1, -1),
-            new Vec2(1, 0),
-            new Vec2(1, 1),
-
-            new Vec2(2, -1),
-            new Vec2(2, 0),
-            new Vec2(2, 1)
-          ].map(x => Affine2FromShift(x));
-          break;
-        case "hex":
-          tilingTransforms=[
-            new Vec2(0, 0),
-
-            new Vec2(-1, 0),
-            new Vec2(-0.5, ROOT3/2),
-            new Vec2(-0.5, -ROOT3/2),
-
-            new Vec2(1, 0),
-            new Vec2(0.5, ROOT3/2),
-            new Vec2(0.5, -ROOT3/2),
-
-            //not so necessary
-            new Vec2(2, 0),
-            new Vec2(-2, 0),
-
-            // new Vec2(0, ROOT3),
-            // new Vec2(-1, ROOT3),
-            // new Vec2(1, ROOT3),
-            //
-            // new Vec2(0, -ROOT3),
-            // new Vec2(-1, -ROOT3),
-            // new Vec2(1, -ROOT3),
-
-            new Vec2(-1.5, ROOT3/2),
-            new Vec2(-1.5, -ROOT3/2),
-
-            new Vec2(1.5, ROOT3/2),
-            new Vec2(1.5, -ROOT3/2)
-          ].map(x => Affine2FromShift(x.mult(ROOT3)));
-          break;
-        case "tri":
-          tilingTransforms=[
-            [0, new Vec2(0, 0)],
-
-            [TAU/6, new Vec2(1, 0)],
-            [0, new Vec2(1.5, -ROOT3/2)],
-            [0, new Vec2(1.5, ROOT3/2)],
-
-            [TAU/6, new Vec2(-0.5, ROOT3/2)],
-            [0, new Vec2(0, ROOT3)],
-            [0, new Vec2(-1.5, ROOT3/2)],
-
-            [TAU/6, new Vec2(-0.5, -ROOT3/2)],
-            [0, new Vec2(-1.5, -ROOT3/2)],
-            [0, new Vec2(0, -ROOT3)],
-
-            [TAU/6, new Vec2(-2, 0)],
-
-            [TAU/6, new Vec2(1, ROOT3)],
-            [TAU/6, new Vec2(1, -ROOT3)]
-          ].map(x => Affine2FromAngleAndShift(x[0], x[1].mult(1/ROOT3)));
-          // ].map(x => Affine2FromAngleAndShift(x[0], x[1]));
           break;
         case "hypTest":
           tilingTransforms=[
@@ -2180,30 +2083,19 @@
           ]
           break;
         case "regular using schlafli":// TODO: generalize with schlafli symbol input, then i can get rid of square, hex and tri
-          // tilingTransforms=[];
-          tilingTransforms=[new HypTransform()];
+          tilingTransforms=[];
+          // tilingTransforms=[new HypTransform()];
           
           // for (var i = 0; i < schlafliP; i++) {//only the central tile and its neighbors
           //   tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
           // }
           
-          for (var i = 1; i < numPolys; i++) {
-          // for (var i = 0; i < numPolys; i++) {
-            // let curPos=V[P[i].verts[0]].pos;
-            // let curPos=V[P[i].verts[0]].pos.add(V[P[i].verts[Math.floor(schlafliP/2)]].pos).div(2);
-            // let curPos=Vec2FromAngleAndHypLength(P[i].centerAngFromXAxis, P[i].centerToOriginHyp);
-            let posArr=[];
-            for (var j = 0; j < P[i].verts.length; j++) {
-              let curPos=V[P[i].verts[j]].pos;
-          
-              posArr.push();
+          for (var i = 0; i < numPolys; i++) {
+            if (true) {
+            // if (P[i].layer==0 || P[i].layer==4) {
+              tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
             }
-            // tilingTransforms.push(new HypTransform(curPos.ang(), eucToHypDist(curPos.len()), PI+TAU*i/schlafliP+P[i].vertexOffsetAngle));
-            // tilingTransforms.push(new HypTransform(curPos.ang(), eucToHypDist(curPos.len()), P[i].vertexOffsetAngle));
-            tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
           }
-          
-          // console.log(tilingTransforms);
           break;
         default:
           alert("this shouldn't have happened! (invalid tiling type)");
@@ -2224,7 +2116,7 @@
     }
 
     function generateValidTilingVertArr(ctx=context) {
-      // if (!initialDrawingReady || tileOrder!=6 || tilingTypeName!="hex") {
+      // if (!initialDrawingReady || schlafliP!=6 || schlafliQ!=3) {
       if (!canAutoGenerateGeometrically()) {
         return 0;
       }
@@ -2485,16 +2377,15 @@
           schlafliSymbol=newSchlafliSymbol;
           schlafliP=schlafliSymbol[0];
           schlafliQ=schlafliSymbol[1];
-          
-          tileOrder=schlafliP;
-          tileOrderInput.value=schlafliP;
         }
         else {
           document.getElementById("schlafli-input-container").style.backgroundColor="rgb(240, 80, 80)";
         }
       
       // TODO: where is this all from? (i figured a lot of it out, but there must be something to cite)
-      if (true){// INITIAL object definition (first polygon and vertices with positions)// TODO: separate function for this (and only do it if schlafliSymbol changed)
+      // TODO: separate function for object definitions
+      // TODO: redefine objects only when schlafliSymbol changes
+      if (true){// INITIAL object definition (first polygon and vertices with positions)
         P=[new Polygon()];//Polygons array
         V=[];//Vertices array
         for (var i = 0; i < schlafliP; i++)
@@ -2553,8 +2444,8 @@
           V[i].setPos(new Vec2(radius*d*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -radius*d*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
         }
       }
-      // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
-      for (var k=0; k<2; k++) {// GRAPH generation
+      // for (var k=0; k<2; k++) {// GRAPH generation
+      for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
         // for (var i=0; i<0; i++) {//edges
         for (var i=0; i<schlafliP; i++) {//edges
           //don't make new polygon towards parent
@@ -2566,7 +2457,7 @@
           if (V[v1].numPolys==schlafliQ || V[v2].numPolys==schlafliQ) continue;
 
           P[numPolys]=new Polygon();
-          P[numPolys].layer=P[k].layer+1;// TODO: untested and unused
+          P[numPolys].layer=P[k].layer+1;
 
           //neighborship of new polygon and its parent
           P[k].addNext(numPolys);
@@ -2806,23 +2697,24 @@
         // console.log("");
       }
       for (var i=1; i<numPolys; i++) {// CALCULATE vertex positions
-        console.log("%c"+P[i].next[0]+":", "font-size:160%; color:lime", i);
+        // console.log("%c"+P[i].next[0]+":", "font-size:160%; color:lime", i);
         let v1=P[i].verts[0];
         let v2=P[i].verts[1];
         let parentPoly=P[P[i].next[0]];
         
         // centerAngFromXAxis, centerToOriginHyp, vertexOffsetAngle
         let parentVertIndex=indexOfElement(parentPoly.verts, P[i].verts[0]);
-        let angleOriginToParentToChild=PI+parentPoly.centerAngFromXAxis+(0.5-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;
+        let angleOriginToParentToChild=-PI-parentPoly.centerAngFromXAxis+(0.5-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;
+        // let angleOriginToParentToChild=-PI-parentPoly.centerAngFromXAxis+(0.5001-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;// TODO: something dislikes precise angles (in [6, 4], [8, 4], [10, 3])
         // let angleOriginToParentToChild=(parentVertIndex+0.5)*TAU/schlafliP+P[k].vertexOffsetAngle;// TODO: won't work, it's a simplified version of the above line
-        // console.log("parentPoly.centerAngFromXAxis", parentPoly.centerAngFromXAxis, "parentVertIndex", parentVertIndex, "(0.5-parentVertIndex)*TAU/schlafliP", (0.5-parentVertIndex)*TAU/schlafliP, "parentPoly.vertexOffsetAngle", parentPoly.vertexOffsetAngle, "angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
+        // console.log("parentPoly.centerAngFromXAxis", parentPoly.centerAngFromXAxis, "parentVertIndex", parentVertIndex, "(1.5-parentVertIndex)*TAU/schlafliP", (1.5-parentVertIndex)*TAU/schlafliP, "parentPoly.vertexOffsetAngle", parentPoly.vertexOffsetAngle, "angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
         // console.log("angleOriginToParentToChild", angleOriginToParentToChild);
         if (i<=schlafliP) {//the surrounding of the first tile // TODO: shouldn't be necessary, here for bugfixing
         // if (false) {
           P[i].centerAngFromXAxis=(0.5-i)*TAU/schlafliP;
           P[i].centerToOriginHyp=2*centerToEdgeMidpointHyp;
-          P[i].vertexOffsetAngle=PI+TAU*i/schlafliP;
-          // P[i].vertexOffsetAngle=TAU*(1-i)/schlafliP;
+          // P[i].vertexOffsetAngle=PI+TAU*i/schlafliP;
+          P[i].vertexOffsetAngle=PI+TAU*(1-i)/schlafliP;
           // console.log(P[i].centerAngFromXAxis);
           // console.log(i, P[i].next[0], P[i].vertexOffsetAngle);
         }
@@ -2834,11 +2726,8 @@
           P[i].vertexOffsetAngle=new HypTransform(P[i].centerAngFromXAxis, -P[i].centerToOriginHyp).applyTo(V[P[i].verts[0]].pos).ang();
           
           // console.log("angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
-          // console.log(P[i].centerAngFromXAxis);
-          // console.log(P[i].centerToOriginHyp);
           // console.log(i, P[i].next[0], P[i].centerToOriginHyp);
         }
-        console.log(P[i].vertexOffsetAngle);
 
         let prevC, newR;
 
