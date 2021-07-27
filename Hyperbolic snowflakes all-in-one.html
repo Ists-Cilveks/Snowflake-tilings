@@ -386,7 +386,10 @@
       var wordModeContainer=document.getElementById("word-mode-container");
       var drawingModeContainer=document.getElementById("drawing-mode-container");
       
+<<<<<<< HEAD
       var schlafliInputContainer=document.getElementById("schlafli-input-container");
+=======
+>>>>>>> c52d9eb333c66f3ac4e6755306a0ef6a5fdba431
       var schlafliPInput=document.getElementById("schlafliP");
       var schlafliQInput=document.getElementById("schlafliQ");
       
@@ -430,7 +433,11 @@
       // var schlafliSymbol=[6, 4];
       var schlafliSymbol=[5, 4];
       // var schlafliSymbol=[4, 4];
+<<<<<<< HEAD
       // var schlafliSymbol=[4, 7];
+=======
+      var schlafliSymbol=[4, 7];
+>>>>>>> c52d9eb333c66f3ac4e6755306a0ef6a5fdba431
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
       
@@ -1082,8 +1089,12 @@
             // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
             // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).screen();
             // let curScreenPos=transf.applyTo(curPos).mult(globalScaling).screen();
+<<<<<<< HEAD
             // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen();
             let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).mult(globalScaling).screen();
+=======
+            let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen();
+>>>>>>> c52d9eb333c66f3ac4e6755306a0ef6a5fdba431
             // console.log(curScreenPos);
             ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
             
@@ -2954,18 +2965,36 @@
       redrawAll();
     }
         
+<<<<<<< HEAD
     
     updateSchlafliSymbol();
     generateHyperbolicGraph();
     
     setWordModeEnabled(true);
     initialDrawingReady=true;
+=======
+    
+    updateSchlafliSymbol();
+    
+    generateHyperbolicGraph();
+    
+    
+    setWordModeEnabled(true);
+    initialDrawingReady=true;
+    
+    resize();
+    
+    // redrawBackground();
+>>>>>>> c52d9eb333c66f3ac4e6755306a0ef6a5fdba431
     
     resize();
     update();
 
     // console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
+<<<<<<< HEAD
     // updateMirrorAngle(0);
+=======
+>>>>>>> c52d9eb333c66f3ac4e6755306a0ef6a5fdba431
     // tilingTypeName="none"; setTilingTransforms(); clearAll();
 
     function mouseUp(){
