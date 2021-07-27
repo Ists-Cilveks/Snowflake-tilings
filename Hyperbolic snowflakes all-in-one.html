@@ -257,6 +257,7 @@
       <hr>
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
       <div id="word-mode-container">
+        <input type="text" id="dsf-operations-input" autocomplete="off" onchange="updateCurDSFOperations()">
       </div>
       <div id="drawing-mode-container">
         <div id="mirror-angle-container">
@@ -266,9 +267,6 @@
         <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVerticesGeometrically()">Auto-generate geometrically</button>
         <form style="margin-bottom: 3%" id="tiling-type-input" onchange="updateTilingType()"></form>
       </div>
-
-
-
 
       <hr>
 
@@ -382,12 +380,13 @@
       var useMirrorsButton=document.getElementById("use-mirrors-button");
       var autoGenerateButton=document.getElementById("auto-generate-valid-snowflake");
       var mirrorAngleContainer=document.getElementById("mirror-angle-container");
-      var schlafliInputContainer=document.getElementById("schlafli-input-container");
+      var dsfOperationsInput=document.getElementById("dsf-operations-input");
       
       var wordModeButton=document.getElementById("word-mode-button");
       var wordModeContainer=document.getElementById("word-mode-container");
       var drawingModeContainer=document.getElementById("drawing-mode-container");
       
+      var schlafliInputContainer=document.getElementById("schlafli-input-container");
       var schlafliPInput=document.getElementById("schlafliP");
       var schlafliQInput=document.getElementById("schlafliQ");
       
@@ -429,9 +428,9 @@
       // var schlafliSymbol=[3, 6];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[6, 4];
-      // var schlafliSymbol=[5, 4];
+      var schlafliSymbol=[5, 4];
       // var schlafliSymbol=[4, 4];
-      var schlafliSymbol=[4, 7];
+      // var schlafliSymbol=[4, 5];
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
       
@@ -441,8 +440,9 @@
       // var tilingTypeName="none";
       // var tilingTypeName="hypTest";
       var tilingTypeName="regular using schlafli";
+      // var tilingTypeName="anisohedral";
       
-      var tilingTypes=[["none"], ["hypTest"], ["regular using schlafli"]];
+      var tilingTypes=[["none"], ["hypTest"], ["regular using schlafli"], ["anisohedral"]];
       // var tilingTypeName=tilingTypes[tilingTypeIndex][0];
       
       // var tilingTypeName;
@@ -490,8 +490,10 @@
           if (wordModeEnabled) {
             wordModeButton.style.backgroundColor="#16f";
             wordModeButton.innerHTML="Word mode";
-            wordModeContainer.style.visibility="visible";
-            drawingModeContainer.style.visibility="hidden";
+            // wordModeContainer.style.visibility="visible";
+            // drawingModeContainer.style.visibility="hidden";
+            wordModeContainer.style.display="block";
+            drawingModeContainer.style.display="none";
             // setTilingTransforms("regular using schlafli");// TODO: would modifying the function and using this be better (otherwise i need an extra line to change tilingTypeName)
             tilingTypeName="regular using schlafli";
             setTilingTransforms();
@@ -500,9 +502,12 @@
           else {
             wordModeButton.style.backgroundColor="#666";
             wordModeButton.innerHTML="Drawing mode";
-            wordModeContainer.style.visibility="hidden";
-            drawingModeContainer.style.visibility="visible";
+            // wordModeContainer.style.visibility="hidden";
+            // drawingModeContainer.style.visibility="visible";
+            wordModeContainer.style.display="none";
+            drawingModeContainer.style.display="block";
             // setTilingTransforms("regular using schlafli");
+            updateTilingType();
             setTilingTransforms();
             updateMirrorAngle();
           }
@@ -1246,10 +1251,11 @@
       console.log("%c                                                   ", "display: inline-block; border: 2px solid lightgray; font-size:1px");
     }
 
+    var curDSF=new DSF([], []);
     // var curDSF=new DSF([], [0]);
     // curDSF=curDSF.extend0();
-    var curDSF=new DSF([0], []);// TODO: DSF([0], []) doesn't draw correctly in {5, 4}
-    curDSF=curDSF.extend1();
+    // var curDSF=new DSF([0], []);
+    // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
     // curDSF=curDSF.extend1();
@@ -1270,7 +1276,10 @@
     // logCurDSFInfo();
     // console.log("%cresult", "font-size:200%; padding:1%");
     // console.log(curDSF.w0, curDSF.w1);
-    console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
+    // console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
+    
+    dsfOperationsInput.value="e1";
+    updateCurDSFOperations();
 
     var resultingDSFArray=[];
     function generateDSFGrid() {// TODO: hyperbolic tile support
@@ -1988,10 +1997,8 @@
         V[i].draw();
       }
     }
-
-
-
-
+    
+    
     var tilingTransforms=[];
     var inTileTransforms=[];// TODO: full affine transformation array instead?
     var mirrorM; // m of the mirror line y=mx
@@ -2108,6 +2115,49 @@
               tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
             }
           }
+          break;
+        case "anisohedral":
+          tilingTransforms=[//squareflake tiling, "2-colored" with two different rotations
+            new HypTransform(0, 0, 0),
+            new HypTransform(0, 1, HPI/2),
+            new HypTransform(HPI, 1, HPI/2),
+            new HypTransform(HPI/2, ROOT2, 0),
+          
+            // new HypTransform(HPI/2, ROOT2/2, 0),
+          ];
+          
+          // tilingTransforms=[//snowflakes, 3 rotations
+          //   new HypTransform(0, 0, 0),
+          //   new HypTransform(0, 1, TAU/6/3),
+          //   new HypTransform(TAU/6, 1, TAU/6*2/3),
+          //   new HypTransform(TAU*2/6, 1, TAU/6/3),
+          //   new HypTransform(TAU*3/6, 1, TAU/6*2/3),
+          //   new HypTransform(TAU*4/6, 1, TAU/6/3),
+          //   new HypTransform(TAU*5/6, 1, TAU/6*2/3),
+          //   new HypTransform(TAU/6/2, ROOT3, 0),
+          // ];
+          // tilingTransforms=[//snowflakes, 3 rotations
+          //   new HypTransform(0, 0, 0),
+          //   new HypTransform(0, 1, TAU/3/3),
+          //   new HypTransform(TAU/6, 1, TAU/3*2/3),
+          //   new HypTransform(TAU*2/6, 1, TAU/3/3),
+          //   new HypTransform(TAU*3/6, 1, TAU/3*2/3),
+          //   new HypTransform(TAU*4/6, 1, TAU/3/3),
+          //   new HypTransform(TAU*5/6, 1, TAU/3*2/3),
+          // ];
+          
+          // // let rot=TAU/6/2;
+          // // let rot1=0.5;
+          // let rot2=TAU/6/2;
+          // tilingTransforms=[//snowflakes, 2 rotations
+          //   new HypTransform(0, 0, 0),
+          //   new HypTransform(0, 1, 0),
+          //   new HypTransform(TAU/6, 1, rot2),
+          //   new HypTransform(TAU*2/6, 1, 0),
+          //   new HypTransform(TAU*3/6, 1, rot2),
+          //   new HypTransform(TAU*4/6, 1, 0),
+          //   new HypTransform(TAU*5/6, 1, rot2),
+          // ];
           break;
         default:
           alert("this shouldn't have happened! (invalid tiling type)");
@@ -2810,6 +2860,46 @@
       curDSF.updateSegmentLength();
       curDSF.updateMirrorM();
     }
+    function DSFOperationNameFromString(str) {//given a shortened operation name, returns the full function name or undefined if it's invalid
+      let res="";
+      if (str.length==2 && (str[0]=="e" || str[0]=="s" || str[0]=="t") && (str[1]=="0" || str[1]=="1")) {
+        res+={e:"extend", s:"swap", t:"trim"}[str[0]];
+        res+=str[1];
+        return res;
+      }
+    }
+    function updateCurDSFOperations() {
+      
+      let cleanStr=dsfOperationsInput.value.replace(/\s/g, "");//remove all whitespace from the dsfOperationsInput
+      if (cleanStr.length>1000) return;
+      
+      let curSubstr="";
+      let operations=[];
+      for (var i = 0; i < cleanStr.length; i++) {
+        curSubstr+=cleanStr[i];
+        let curOp=DSFOperationNameFromString(curSubstr);
+        if (typeof(curOp)!="undefined") {
+          operations.push(curOp);
+          curSubstr="";
+        }
+      }
+      if (curSubstr.length==0) {
+        //operation string was good, execute the operations
+        curDSF=new DSF([0], []);
+        for (var i = 0; i < operations.length; i++) {
+          curDSF=curDSF[operations[i]]();
+        }
+        dsfOperationsInput.style.backgroundColor="";
+      }
+      else {
+        dsfOperationsInput.style.backgroundColor="rgb(240, 80, 80)";
+      }
+      
+      console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
+      
+      setDSFStuff();
+      clearAll();
+    }
     
     // function restart() {
     //   clearAll();
@@ -2866,20 +2956,16 @@
         
     
     updateSchlafliSymbol();
-    
     generateHyperbolicGraph();
-    
     
     setWordModeEnabled(true);
     initialDrawingReady=true;
     
     resize();
-    
-    // redrawBackground();
-    
     update();
 
     // console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
+    // updateMirrorAngle(0);
     // tilingTypeName="none"; setTilingTransforms(); clearAll();
 
     function mouseUp(){
