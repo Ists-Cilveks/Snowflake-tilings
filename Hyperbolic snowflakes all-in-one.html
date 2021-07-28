@@ -416,7 +416,8 @@
       // var globalScaling=0.2;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
       // var globalScaling=0.5;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
       // var globalScaling=0.8;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
-      var globalScaling=1;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
+      // var globalScaling=1;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
+      var globalScaling;//applies to user drawing (drawPointAtPosition) and drawToWholeScreen
       var DSFGridScaling=0.85;//applies to generateDSFGrid
       const minFramesSinceResize=20;//if the window is being constantly resized (slow dragging), resize the canvas every minFramesSinceResize frames
       var framesSinceResize=0;
@@ -1278,7 +1279,7 @@
     // console.log(curDSF.w0, curDSF.w1);
     // console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
     
-    dsfOperationsInput.value="e1";
+    dsfOperationsInput.value="e1e0s0";
     updateCurDSFOperations();
 
     var resultingDSFArray=[];
@@ -2084,6 +2085,10 @@
     function setTilingTransforms(name=tilingTypeName) {//define the hyperbolic translations used to make the tiling (it applied to each point of the central tile) (like 6 equally spaced, unrotated copies at distance 1, to make a hexagonal tiling)
       // console.trace("name:", name);
       // if (!initialDrawingReady) return;
+      globalScaling=1;
+      if (isEuclidean && (name=="hypTest" || name=="regular using schlafli" || name=="anisohedral")) {
+        globalScaling=0.5;
+      }
       switch (name) {
         case "none":
           // tilingTransforms=[new Affine2()];
