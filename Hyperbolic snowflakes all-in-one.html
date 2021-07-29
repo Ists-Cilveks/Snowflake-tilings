@@ -352,16 +352,12 @@
 
     /* TODO:
       a bunch of attribution is still needed
-      
       replace a bunch of 0.001 epsilons
-      fix having to rotate the board slightly? (see other to-dos)
-
       word ui
       just drawing previews is demanding? (canvas transformations might help???)
       detailed drawing mode (zoom in on one fundamental triangle)
       better, more efficient undo (could fairly easily be much more efficient one level deep)
       better UI
-      canvas.width etc shorten to width or w
       find all TO-DOs
       better resizing
       erase pointless commented code
@@ -429,11 +425,12 @@
       // var schlafliSymbol=[3, 6];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[6, 4];
-      var schlafliSymbol=[5, 4];
+      // var schlafliSymbol=[5, 4];
       // var schlafliSymbol=[4, 4];
       // var schlafliSymbol=[4, 7];
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
+      var schlafliSymbol=[4, 3];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -568,7 +565,8 @@
         schlafliQInput.value=schlafliQ;
         var numTakenVerts=0;
         var lastClickTookPolygon=false;
-        var isEuclidean=false;
+        var isEuclidean;// TODO: not needed
+        var curvature;
         
         var edgeLengthHyp;
         var centerToEdgeMidpointEuc;
@@ -1279,7 +1277,8 @@
     // console.log(curDSF.w0, curDSF.w1);
     // console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
     
-    dsfOperationsInput.value="e1e0s0";
+    // dsfOperationsInput.value="e1e0s0";
+    dsfOperationsInput.value="e1";
     updateCurDSFOperations();
 
     var resultingDSFArray=[];
@@ -1678,7 +1677,7 @@
         if (isEuclidean) {
           return new Vec2(v.x+this.shiftDist, v.y);
         }
-        else {
+        else if (curvature==-1) {
           let ex=Math.exp(this.shiftDist)
           //formula adapted from the final equation in the answer by MvG (https://math.stackexchange.com/users/35416/mvg), Rigid body motion on the Poincare disc model of the hyperbolic plane, URL (version: 2013-02-19): https://math.stackexchange.com/q/308492
           return new Vec2(
@@ -1686,9 +1685,22 @@
             4*ex*v.y
           ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
           // return new Vec2(// TODO: optimize? (same as in applyTo)
-        //   (ex*v.x+v.x+ex-1) * (ex*v.x-v.x+ex+1) - (ex*v.y+v.y) * (v.y-ex*v.y),
-        //   4*ex*v.y
-        // ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
+          //   (ex*v.x+v.x+ex-1) * (ex*v.x-v.x+ex+1) - (ex*v.y+v.y) * (v.y-ex*v.y),
+          //   4*ex*v.y
+          // ).div((ex*v.x-v.x+ex+1)**2 + (ex*v.y-v.y)**2);
+        }
+        else {
+          //input point (v.x, v.y) in stereographic projection, calculate point (sphX, sphY, sphZ) on sphere
+          let sphX=2*v.x/(1+v.x**2+v.y**2);
+          let sphY=2*v.y/(1+v.x**2+v.y**2);
+          let sphZ=(-1+v.x**2+v.y**2)/(1+v.x**2+v.y**2);
+          
+          //rotate sphX and sphZ in the xz plane
+          let sphXRot=sphX*Math.cos(this.shiftDist)-sphZ*Math.sin(this.shiftDist);
+          let sphZRot=sphX*Math.sin(this.shiftDist)+sphZ*Math.cos(this.shiftDist);
+          
+          //stereographically project the point back
+          return new Vec2(sphXRot/(1-sphZRot), sphY/(1-sphZRot));
         }
       }
       
@@ -1731,14 +1743,23 @@
           return B;
         }
       }
-      else {
-        //formula adapted from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
+      else if (curvature==-1) {
+        //hyperbolic four-parts formula, adapted from https://en.wikipedia.org/wiki/Hyperbolic_triangle, retrieved 16.07.2021
         // return Math.acot((Math.sinh(a)*Math.coth(b)-Math.cos(C)*Math.cosh(a))/Math.sin(C));//direct copy, but these functions are not defined
         // return Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));//modified to work, but this still breaks in some edge cases
         let res=Math.atan(Math.sin(C)/(Math.sinh(a)/Math.tanh(b)-Math.cos(C)*Math.cosh(a)));
         if (res<0 ^ mod(C, TAU)>PI) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
           res+=PI;
         }
+        return res;
+      }
+      else {
+        //hyperbolic four-parts formula, adapted from https://en.wikipedia.org/wiki/Spherical_trigonometry#Cotangent_four-part_formulae (CT6), retrieved 16.07.2021
+        // let res=Math.acot((Math.sin(a)*Math.cot(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));//direct copy
+        let res=1/Math.atan((Math.sin(a)/Math.tan(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));
+        // if (res<0 ^ mod(C, TAU)>PI) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
+        //   res+=PI;
+        // }
         return res;
       }
     }
@@ -1748,28 +1769,40 @@
         return Math.sqrt(res);
         // return res>=0 ? Math.sqrt(res) : 0;// TODO: will i need this?
       }
-      else {
+      else if (curvature==-1) {
         //formula taken from https://en.wikipedia.org/wiki/Hyperbolic_triangle on 16.07.2021
         let res=Math.cosh(a)*Math.cosh(b)-Math.sinh(a)*Math.sinh(b)*Math.cos(C);
         return res>=1 ? Math.acosh(res) : 0;// TODO: kinda janky but i probably can't avoid it
       }
+      else {
+        //formula taken from "Spherical Trigonometry: For the Use of Colleges and Schools by I. Todhunter", retrieved 28.07.2021 from https://www.gutenberg.org/ebooks/19770
+        return Math.acos( Math.cos(a)*Math.cos(b) + Math.sin(a)*Math.sin(b)*Math.cos(C) );
+      }
     }
-    function hypToEucDist(rho) {
+    function hypToEucDist(rho) {// TODO: rename many functions with hyp
       if (isEuclidean) {
         return rho;
       }
-      else {
+      else if (curvature==-1) {
         //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
         return Math.tanh(rho/2);
+      }
+      else {
+        //formula adapted from https://en.wikipedia.org/wiki/Stereographic_map_projection retrieved 28.07.2021
+        return 2*Math.tan(HPI-rho/2);
       }
     }
     function eucToHypDist(r) {
       if (isEuclidean) {
         return r;
       }
-      else {
+      else if (curvature==-1) {
         //formula from "Poincare’s Disk Model for Hyperbolic Geometry" section 9.2.2 retrieved from https://www.ms.uky.edu/~droyster/courses/spring08/math6118/Classnotes/Chapter09.pdf on 16.07.2021
         return 2*Math.atanh(r);
+      }
+      else {
+        //formula adapted from https://en.wikipedia.org/wiki/Stereographic_map_projection retrieved 28.07.2021
+        return 2*(HPI-Math.atan(r/2));
       }
     }
     
@@ -1837,7 +1870,6 @@
       this.polys=[];
       this.pos=new Vec2();
       this.drawPos=new Vec2();
-      this.takenByNumber=0;
       this.radius=0;
       this.addNext=function(n) {
         this.next[this.numNext]=n;
@@ -1933,28 +1965,31 @@
 
     function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       // if (true) {//arc edges
-        if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
-          var circleCenter=getGeodesicCircleCenter(v1, v2);
-          var newR=(circleCenter.sub(v1)).len();
-        }
-        if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
-        // if (newR>=10000 || Number.isNaN(newR)) {// TODO: removing isEuclidean conditions seems to successfully draw euclidean shapes in the poincare disk, if that makes sense. maybe it'll cause problems down the line!
-          // var v1Screen=v1.mult(globalScaling).screen();
-          // ctx.moveTo(v1Screen.x, v1Screen.y);
-          var v2Screen=v2.mult(globalScaling).screen();
-          ctx.lineTo(v2Screen.x, v2Screen.y);
-        }
-        else {
-          // console.log(newR);
-          var circleCenterScreen=circleCenter.mult(globalScaling).screen();
-          var ang1=-v1.sub(circleCenter).ang();
-          var ang2=-v2.sub(circleCenter).ang();
-          var widd=(ang1-ang2+TAU)%TAU<=PI;
-          ctx.arc(circleCenterScreen.x, circleCenterScreen.y, newR*globalScaling*height/2, ang1, ang2, widd);
-        }
+        // if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
+        //   var circleCenter=getGeodesicCircleCenter(v1, v2);
+        //   var newR=(circleCenter.sub(v1)).len();
+        // }
+        // if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
+        // // if (newR>=10000 || Number.isNaN(newR)) {// TODO: removing isEuclidean conditions seems to successfully draw euclidean shapes in the poincare disk, if that makes sense. maybe it'll cause problems down the line!
+        //   // var v1Screen=v1.mult(globalScaling).screen();
+        //   // ctx.moveTo(v1Screen.x, v1Screen.y);
+        //   var v2Screen=v2.mult(globalScaling).screen();
+        //   ctx.lineTo(v2Screen.x, v2Screen.y);
+        // }
+        // else {
+        //   // console.log(newR);
+        //   var circleCenterScreen=circleCenter.mult(globalScaling).screen();
+        //   var ang1=-v1.sub(circleCenter).ang();
+        //   var ang2=-v2.sub(circleCenter).ang();
+        //   var widd=(ang1-ang2+TAU)%TAU<=PI;
+        //   ctx.arc(circleCenterScreen.x, circleCenterScreen.y, newR*globalScaling*height/2, ang1, ang2, widd);
+        // }
       // }
       // else {//straight edges
-      //   drawLine(v1, v2);//straight lines, alternative to arcs
+        // drawLine(v1, v2);//straight lines, alternative to arcs
+        let v1Scaled=v1.mult(globalScaling);
+        let v2Scaled=v2.mult(globalScaling);
+        drawLine(v1Scaled, v2Scaled);//straight lines, alternative to arcs
       // }
     }
     function pathPoincarePoly(vertArr) {//add one polygon's (as an array of indexes in V[]) path to context
@@ -2001,7 +2036,7 @@
     
     
     var tilingTransforms=[];
-    var inTileTransforms=[];// TODO: full affine transformation array instead?
+    var inTileTransforms=[];
     var mirrorM; // m of the mirror line y=mx
 
     function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
@@ -2089,6 +2124,9 @@
       if (isEuclidean && (name=="hypTest" || name=="regular using schlafli" || name=="anisohedral")) {
         globalScaling=0.5;
       }
+      else if (curvature==1) {
+        globalScaling=0.3;
+      }
       switch (name) {
         case "none":
           // tilingTransforms=[new Affine2()];
@@ -2103,7 +2141,7 @@
             // new HypTransform(0, 0.01, 0),
           ]
           break;
-        case "regular using schlafli":// TODO: generalize with schlafli symbol input, then i can get rid of square, hex and tri
+        case "regular using schlafli":
           // tilingTransforms=[new HypTransform()];
           // for (var i = 0; i < schlafliP; i++) {//only the central tile and its neighbors
           //   tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
@@ -2419,7 +2457,7 @@
       if( //if the input values are reasonable, change variables accordingly
           newSchlafliSymbol[0]>=3 && newSchlafliSymbol[0]<=30
           && newSchlafliSymbol[1]>=3 && newSchlafliSymbol[1]<=30
-          && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
+          // && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
         )
         {// TODO: change arbitrary limits (particularly upper ones) // TODO: allow spherical geometry too!
           schlafliInputContainer.style.backgroundColor="";
@@ -2458,33 +2496,43 @@
         numVerts=schlafliP;
         numPolys=1;
 
-        let d;
-        if ((schlafliP-2)*(schlafliQ-2)>4) {
-          isEuclidean=false;
-          d=Math.sqrt((Math.tan(PI / 2 - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(PI / 2 - PI / schlafliQ) + Math.tan(PI / schlafliP)));
+        let curvatureDeterminer=(schlafliP-2)*(schlafliQ-2);
+        if (curvatureDeterminer>4) {//hyperbolic
+          isEuclidean=false; curvature=-1;
           
           //formula taken from http://www.malinc.se/noneuclidean/en/poincaretiling.php#formula on 16.07.2021
-          centerToVertexEuc=d;
+          centerToVertexEuc=Math.sqrt((Math.tan(PI / 2 - PI / schlafliQ) - Math.tan(PI / schlafliP)) / (Math.tan(PI / 2 - PI / schlafliQ) + Math.tan(PI / schlafliP)));
           
-          // TODO: where is this from? // TODO: rename, it's hyperbolic, not just poincare
-          edgeLengthHyp=Math.acosh(1+2*((1-Math.cos(TAU/schlafliP))**2+Math.sin(TAU/schlafliP)**2)*d**2/( (1-d**2)**2 ));
+          // TODO: where is this from?
+          edgeLengthHyp=Math.acosh(1+2*((1-Math.cos(TAU/schlafliP))**2+Math.sin(TAU/schlafliP)**2)*centerToVertexEuc**2/( (1-centerToVertexEuc**2)**2 ));
           
           centerToEdgeMidpointEuc=hypToEucDist(hypSASGetThirdEdge(eucToHypDist(centerToVertexEuc), PI/schlafliQ, edgeLengthHyp/2));
         }
-        else if ((schlafliP-2)*(schlafliQ-2)==4) {
-          isEuclidean=true;
-          // d=0.1;
+        else if (curvatureDeterminer==4) {//euclidean
+          isEuclidean=true; curvature=0;
+
+          centerToVertexEuc=0.5/Math.sin(PI/schlafliP);
           
-          // centerToVertexEuc=d;
-          d=centerToVertexEuc=0.5/Math.sin(PI/schlafliP);
-          // console.log(centerToVertexEuc);
-          
-          // centerToEdgeMidpointEuc=0.41;
           centerToEdgeMidpointEuc=0.5/Math.tan(PI/schlafliP);
           
-          // TODO: what's the plan here? i don't remember what that edgeLengthHyp formula is
-          // edgeLengthHyp=d*Math.sqrt(2*(1-Math.cos(TAU/schlafliP)));
           edgeLengthHyp=1;
+        }
+        else if (curvatureDeterminer>0) {//spherical
+          isEuclidean=false; curvature=1;
+          
+          function sphAAAGetSideOppositeFirstAngle(A, B, C) {// TODO: global function for all geometries?
+            //formula adapted from "Spherical Trigonometry: For the Use of Colleges and Schools by I. Todhunter", retrieved 28.07.2021 from https://www.gutenberg.org/ebooks/19770
+            return Math.acos( (Math.cos(A)+Math.cos(B)*Math.cos(C)) / (Math.sin(B)*Math.sin(C)) );
+          }
+                    
+          centerToVertexEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(HPI, PI/schlafliQ, PI/schlafliP));
+
+          centerToEdgeMidpointEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(PI/schlafliQ, PI/schlafliP, HPI));
+          
+          edgeLengthHyp=2*sphAAAGetSideOppositeFirstAngle(PI/schlafliP, PI/schlafliQ, HPI);
+        }
+        else {//error
+          alert("alert006 invalid schlafli symbol");
         }
         // console.log(d, edgeLengthHyp);
         
@@ -2496,12 +2544,11 @@
           // let offsetAng=0; let offsetX=0.001; let offsetY=0.002;//stable
           // let offsetAng=0.001; let offsetX=0.0001; let offsetY=0.00002;//extra stable?
           // let offsetAng=0.05; let offsetX=0; let offsetY=0;//newly stable
+          // let offsetAng=0.001; let offsetX=0; let offsetY=0;
           // let offsetAng=0.0000000001; let offsetX=0; let offsetY=0;//newly stable? (doesn't work for metasquares polygon checking)
           let offsetAng=0; let offsetX=0; let offsetY=0;// TODO: i think this works now, can i delete these offsets?
 
-          // let offsetAng=0.001; let offsetX=0; let offsetY=0;
-
-          V[i].setPos(new Vec2(d*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -d*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
+          V[i].setPos(new Vec2(centerToVertexEuc*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -centerToVertexEuc*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
         }
       }
       // for (var k=0; k<2; k++) {// GRAPH generation
@@ -2569,7 +2616,10 @@
             P[numPolys].addNext(V[v1].polys[V[v1].numPolys-2]);
           }
 
+          // console.log("%c"+k, "color:lime; font-size:160%", i);
           for (var j = 1; j < vertArc.length; j++) {
+            // console.log(vertArc);
+            // console.log("    ", vertArc[j], "+", vertArc[j-1]);
             V[vertArc[j]].addNext(vertArc[j-1]);
             V[vertArc[j-1]].addNext(vertArc[j]);
           }
