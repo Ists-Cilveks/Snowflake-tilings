@@ -430,7 +430,8 @@
       // var schlafliSymbol=[4, 7];
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
-      var schlafliSymbol=[4, 3];
+      // var schlafliSymbol=[4, 3];
+      var schlafliSymbol=[5, 3];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -1278,7 +1279,8 @@
     // console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
     
     // dsfOperationsInput.value="e1e0s0";
-    dsfOperationsInput.value="e1";
+    // dsfOperationsInput.value="e1";
+    dsfOperationsInput.value="";
     updateCurDSFOperations();
 
     var resultingDSFArray=[];
@@ -2551,19 +2553,28 @@
           V[i].setPos(new Vec2(centerToVertexEuc*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -centerToVertexEuc*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
         }
       }
-      // for (var k=0; k<2; k++) {// GRAPH generation
+      // for (var k=0; k<2; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
       // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
-      for (var k=0; k<1+schlafliP; k++) {// GRAPH generation
+      // for (var k=0; k<1+schlafliP; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
+      for (var k=0; k<20; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
         // for (var i=0; i<0; i++) {//edges
+        // console.log("K",k);
+        // console.log(k, "/", P.length);
+        if (typeof(P[k])==="undefined") break;//this polygon is undefined, presumably means that a sphere has been completed
+        if (P[k].numNext==schlafliP) continue;//don't make new polygons if the current polygon already has all neighbors, similar to previeous but happens sooner
         for (var i=0; i<schlafliP; i++) {//edges
-          //don't make new polygon towards parent
-          if (P[k].numNext>0 && i==0) continue;
-          //get first 2 vertices of new polygon
+          // console.log(i);
+          //don't make new polygon towards parent (the first polygon doesn't have a parent)
+          if (k!=0 && i==0) continue;
+          //get first 2 vertices of new polygon (usually pointing towards the parent)
           var v1=P[k].verts[(1+i)%schlafliP];
           var v2=P[k].verts[i];
-
+          
+          //don't make new polygon if either vertex has already been filled
           if (V[v1].numPolys==schlafliQ || V[v2].numPolys==schlafliQ) continue;
 
+          // console.log("%c"+k, "color:lime; font-size:160%", i);
+          
           P[numPolys]=new Polygon();
           P[numPolys].layer=P[k].layer+1;
 
@@ -2571,21 +2582,28 @@
           P[k].addNext(numPolys);
           P[numPolys].addNext(k);
 
-          //add 2 vertices of first polygon to new polygon and vice versa
+          //add 2 vertices of parent polygon to new polygon and vice versa
           P[numPolys].addVert(v1);
           P[numPolys].addVert(v2);
           V[v1].addPoly(numPolys);
           V[v2].addPoly(numPolys);
 
-          var makeV3=(V[v2].numNext<schlafliQ);
-          var makeV4=(V[v1].numNext<schlafliQ);
+          var makeV3=V[v2].numNext<schlafliQ;
+          var makeV4=V[v1].numNext<schlafliQ;
+          
+          // if (k==4) {
+          //   // console.log(makeV3, makeV4);
+          //   console.log("gggggggggggggg");
+          // }
+          
+          // console.log(makeV3, makeV4, "via "+V[v1].numNext+", "+V[v2].numNext+" <? "+schlafliQ);
 
           var vertArc=[];
           if (makeV3) {
             vertArc.push(v2);
           }
           else {
-            vertArc.push(V[v2].next[V[v2].numNext-1]);//make efficient (not V[v2].numNext but schlafliQ or something) (elsewhere similarly)
+            vertArc.push(V[v2].next[schlafliQ-1]);
 
             V[vertArc[0]].addPoly(numPolys);
             P[numPolys].addVert(vertArc[0]);
@@ -2594,7 +2612,8 @@
             P[numPolys].addNext(V[v2].polys[V[v2].numPolys-2]);
           }
 
-          for (var j = 4-makeV3-makeV4; j < schlafliP; j++) {
+          // for (var j = 4-makeV3-makeV4; j < schlafliP; j++) {
+          for (var j = 0; j < schlafliP-4+makeV3+makeV4; j++) {
             var newVert=numVerts;
             V[newVert]=new Vert();
             vertArc.push(newVert);
@@ -2607,7 +2626,7 @@
             vertArc.push(v1);
           }
           else {
-            vertArc.push(V[v1].next[V[v1].numNext-1]);
+            vertArc.push(V[v1].next[schlafliQ-1]);
 
             V[vertArc[vertArc.length-1]].addPoly(numPolys);
             P[numPolys].addVert(vertArc[vertArc.length-1]);
@@ -2615,204 +2634,207 @@
             P[V[v1].polys[V[v1].numPolys-2]].addNext(numPolys);
             P[numPolys].addNext(V[v1].polys[V[v1].numPolys-2]);
           }
-
-          // console.log("%c"+k, "color:lime; font-size:160%", i);
+          
           for (var j = 1; j < vertArc.length; j++) {
-            // console.log(vertArc);
-            // console.log("    ", vertArc[j], "+", vertArc[j-1]);
-            V[vertArc[j]].addNext(vertArc[j-1]);
-            V[vertArc[j-1]].addNext(vertArc[j]);
+            if (!(vertArc[j]==vertArc[j-1] || arrayContains(V[vertArc[j]].next, vertArc[j-1]))) {
+            // if (!arrayContains(V[vertArc[j]].next, vertArc[j-1])) {
+              // console.log(V[vertArc[j]]);
+              // console.log(arrayContains(V[vertArc[j]].next, vertArc[j-1]));
+              // console.log("    ", vertArc[j], "+", vertArc[j-1]);
+              V[vertArc[j]].addNext(vertArc[j-1]);
+              V[vertArc[j-1]].addNext(vertArc[j]);
+            }
           }
-
+          
           numPolys++;
         }
       }
-      for (var i=0; i<numVerts; i++) {// ORDER the vertices
-        let curV=V[i];
-        var j=0;
-        for (; j < curV.polys.length; j++) {
-          let curPoly=P[curV.polys[j]];
-          // console.log("curPoly", curV.polys[j]);
-          let vertArr=curPoly.verts;
-          let curVLocalIndex=indexOfElement(vertArr, i);
-          // let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
-          let widdVert=vertArr[(curVLocalIndex+1)%schlafliP];
-          // console.log(widdVert);
-          let k=0;
-          for (; k < curV.polys.length; k++) {
-            if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
-              break;
-            }
-          }
-          if (k==curV.polys.length) {
-            // console.log("begin at", curV.polys[j]);
-            break;
-          }
-          else {
-            // console.log("ok");
-          }
-        }
-
-        let newNextArr=[];
-        let newPolyArr=[];
-        let curPairIndex=j;
-        if (curPairIndex==curV.polys.length) {
-          curPairIndex=0;
-        }
-        let pairs=[];
-        let firstPairIndex=curPairIndex;
-
-        for (var j=0; j < curV.polys.length; j++) {
-          let curPoly=P[curV.polys[j]];
-          // console.log(curPolyIndex, curV.polys[curPolyIndex]);
-          // console.log("curPoly", curV.polys[j]);
-          let vertArr=curPoly.verts;
-          let curVLocalIndex=indexOfElement(vertArr, i);
-          let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
-          let clockVert=vertArr[(curVLocalIndex+1)%schlafliP];
-          // pairs.push([widdVert, clockVert]);
-          pairs.push([clockVert, widdVert, curV.polys[j]]);
-          // console.log(widdVert);
-          // let k=0;
-          // for (; k < curV.polys.length; k++) {
-          //   if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
-          //     break;
-          //   }
-          // }
-          // if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
-          //   if () {
-          //   }
-          //   else {
-          //     newNextArr.push(widdVert);
-          //     newPolyArr.push(curV.polys[k]);
-          //     curPolyIndex=k;
-          //   }
-          // }
-          // else {
-          //   newNextArr.push(vertArr[(curVLocalIndex+1)%schlafliP]);
-          //   break;
-          // }
-        }
-
-        // console.log(pairs);
-
-        while (curPairIndex!=firstPairIndex || newNextArr.length==0) {
-          let curPair=pairs[curPairIndex];
-          // console.log(curPairIndex, curPair);
-          newNextArr.push(curPair[0]);
-          newPolyArr.push(curPair[2]);
-          for (var k=0; k < pairs.length; k++) {
-            if (pairs[k][0]==curPair[1]) {
-              curPairIndex=k;
-              break;
-            }
-          }
-          if (k==pairs.length) {
-            newNextArr.push(curPair[1]);
-            break;
-          }
-        }
-
-        // console.log("!!result!!", newNextArr, newPolyArr);
-
-        curV.next=newNextArr;
-        curV.polys=newPolyArr;
-
-        // for (var j=0; j < curV.polys.length; j++) {
-        //   let curPoly=P[curV.polys[curPolyIndex]];
-        //   console.log(curPolyIndex, curV.polys[curPolyIndex]);
-        //   // console.log("curPoly", curV.polys[j]);
-        //   let vertArr=curPoly.verts;
-        //   let curVLocalIndex=indexOfElement(vertArr, i);
-        //   let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
-        //   // console.log(widdVert);
-        //   let k=0;
-        //   for (; k < curV.polys.length; k++) {
-        //     if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
-        //       break;
-        //     }
-        //   }
-        //   if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
-        //     if () {
-        //     }
-        //     else {
-        //       newNextArr.push(widdVert);
-        //       newPolyArr.push(curV.polys[k]);
-        //       curPolyIndex=k;
-        //     }
-        //   }
-        //   else {
-        //     newNextArr.push(vertArr[(curVLocalIndex+1)%schlafliP]);
-        //     break;
-        //   }
-        // }
-
-        // let k=0;
-        // let lastK=undefined;
-        // let lastPoly=curV.polys[0];
-        // let newNextArr=[];
-        // let newPolysArr=[0];
-        // do {
-        //   let vertArr=P[lastPoly].verts;//verts array of the first parent polygon
-        //   let lastVert=vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ];
-        //   k=0;
-        //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
-        //     // console.log(P[curV.polys[k]].verts, lastVert);
-        //     if (arrayContains(P[curV.polys[k]].verts, lastVert) && k!=lastK) {
-        //       break;
-        //     }
-        //   }
-        //
-        //   if (k==curV.numPolys) {
-        //     console.log("bad!!!!!!!!!!!!!!!!");
-        //     break;
-        //   }
-        //   else {
-        //     lastPoly=curV.polys[k];
-        //     newPolysArr.push(lastPoly)
-        //   }
-        //   lastK=k;
-        // } while (k!=0)
-        //
-        // console.log(i);
-        // // console.log(curV.next);
-        // // console.log(newNextArr);
-        // console.log(curV.polys);
-        // console.log(newPolysArr);
-
-        // let newNextArr=[];
-        // let vertArr=P[curV.polys[0]].verts;//verts array of the first parent polygon
-        // let lastVert=V[vertArr[(indexOfElement(vertArr, curV)-1+schlafliQ)%schlafliQ]];
-        // while (true) {
-        //   newNextArr.push(lastVert);
-        //   vertArr=P[curV.polys[lastVert]].verts;//verts array of one of the parent polygons
-        //   // newNextArr.push(vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ]);//get the element after curV in vertArr, add it to newNextArr
-        //   var k=0;
-        //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
-        //     if (arrayContains(P[curV.polys[k]].verts, newNextArr[newNextArr.length-1]) && k!=j) {
-        //       break;
-        //     }
-        //   }
-        //   if (k==curV.numPolys) {
-        //     console.log("bad!!!!!!!!!!!!!!!!");
-        //     break;
-        //   }
-        //   else {
-        //
-        //   }
-        //   let vertArr=P[curV.polys[0]].verts;
-        //   let lastVert=V[vertArr[(indexOfElement(vertArr, curV)-1+schlafliQ)%schlafliQ]];
-        //   console.log(indexOfElement(vertArr, i), (indexOfElement(vertArr, i)+1)%schlafliQ);
-        // }
-        // console.log(curV.next, newNextArr);
-        // console.log("");
-      }
+      // for (var i=0; i<numVerts; i++) {// ORDER the vertices
+      //   let curV=V[i];
+      //   var j=0;
+      //   for (; j < curV.polys.length; j++) {
+      //     let curPoly=P[curV.polys[j]];
+      //     // console.log("curPoly", curV.polys[j]);
+      //     let vertArr=curPoly.verts;
+      //     let curVLocalIndex=indexOfElement(vertArr, i);
+      //     // let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
+      //     let widdVert=vertArr[(curVLocalIndex+1)%schlafliP];
+      //     // console.log(widdVert);
+      //     let k=0;
+      //     for (; k < curV.polys.length; k++) {
+      //       if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
+      //         break;
+      //       }
+      //     }
+      //     if (k==curV.polys.length) {
+      //       // console.log("begin at", curV.polys[j]);
+      //       break;
+      //     }
+      //     else {
+      //       // console.log("ok");
+      //     }
+      //   }
+      //
+      //   let newNextArr=[];
+      //   let newPolyArr=[];
+      //   let curPairIndex=j;
+      //   if (curPairIndex==curV.polys.length) {
+      //     curPairIndex=0;
+      //   }
+      //   let pairs=[];
+      //   let firstPairIndex=curPairIndex;
+      //
+      //   for (var j=0; j < curV.polys.length; j++) {
+      //     let curPoly=P[curV.polys[j]];
+      //     // console.log(curPolyIndex, curV.polys[curPolyIndex]);
+      //     // console.log("curPoly", curV.polys[j]);
+      //     let vertArr=curPoly.verts;
+      //     let curVLocalIndex=indexOfElement(vertArr, i);
+      //     let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
+      //     let clockVert=vertArr[(curVLocalIndex+1)%schlafliP];
+      //     // pairs.push([widdVert, clockVert]);
+      //     pairs.push([clockVert, widdVert, curV.polys[j]]);
+      //     // console.log(widdVert);
+      //     // let k=0;
+      //     // for (; k < curV.polys.length; k++) {
+      //     //   if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
+      //     //     break;
+      //     //   }
+      //     // }
+      //     // if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
+      //     //   if () {
+      //     //   }
+      //     //   else {
+      //     //     newNextArr.push(widdVert);
+      //     //     newPolyArr.push(curV.polys[k]);
+      //     //     curPolyIndex=k;
+      //     //   }
+      //     // }
+      //     // else {
+      //     //   newNextArr.push(vertArr[(curVLocalIndex+1)%schlafliP]);
+      //     //   break;
+      //     // }
+      //   }
+      //
+      //   // console.log(pairs);
+      //
+      //   while (curPairIndex!=firstPairIndex || newNextArr.length==0) {
+      //     let curPair=pairs[curPairIndex];
+      //     // console.log(curPairIndex, curPair);
+      //     newNextArr.push(curPair[0]);
+      //     newPolyArr.push(curPair[2]);
+      //     for (var k=0; k < pairs.length; k++) {
+      //       if (pairs[k][0]==curPair[1]) {
+      //         curPairIndex=k;
+      //         break;
+      //       }
+      //     }
+      //     if (k==pairs.length) {
+      //       newNextArr.push(curPair[1]);
+      //       break;
+      //     }
+      //   }
+      //
+      //   // console.log("!!result!!", newNextArr, newPolyArr);
+      //
+      //   curV.next=newNextArr;
+      //   curV.polys=newPolyArr;
+      //
+      //   // for (var j=0; j < curV.polys.length; j++) {
+      //   //   let curPoly=P[curV.polys[curPolyIndex]];
+      //   //   console.log(curPolyIndex, curV.polys[curPolyIndex]);
+      //   //   // console.log("curPoly", curV.polys[j]);
+      //   //   let vertArr=curPoly.verts;
+      //   //   let curVLocalIndex=indexOfElement(vertArr, i);
+      //   //   let widdVert=vertArr[(curVLocalIndex-1+schlafliP)%schlafliP];
+      //   //   // console.log(widdVert);
+      //   //   let k=0;
+      //   //   for (; k < curV.polys.length; k++) {
+      //   //     if (arrayContains(P[curV.polys[k]].verts, widdVert) && j!=k) {
+      //   //       break;
+      //   //     }
+      //   //   }
+      //   //   if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
+      //   //     if () {
+      //   //     }
+      //   //     else {
+      //   //       newNextArr.push(widdVert);
+      //   //       newPolyArr.push(curV.polys[k]);
+      //   //       curPolyIndex=k;
+      //   //     }
+      //   //   }
+      //   //   else {
+      //   //     newNextArr.push(vertArr[(curVLocalIndex+1)%schlafliP]);
+      //   //     break;
+      //   //   }
+      //   // }
+      //
+      //   // let k=0;
+      //   // let lastK=undefined;
+      //   // let lastPoly=curV.polys[0];
+      //   // let newNextArr=[];
+      //   // let newPolysArr=[0];
+      //   // do {
+      //   //   let vertArr=P[lastPoly].verts;//verts array of the first parent polygon
+      //   //   let lastVert=vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ];
+      //   //   k=0;
+      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
+      //   //     // console.log(P[curV.polys[k]].verts, lastVert);
+      //   //     if (arrayContains(P[curV.polys[k]].verts, lastVert) && k!=lastK) {
+      //   //       break;
+      //   //     }
+      //   //   }
+      //   //
+      //   //   if (k==curV.numPolys) {
+      //   //     console.log("bad!!!!!!!!!!!!!!!!");
+      //   //     break;
+      //   //   }
+      //   //   else {
+      //   //     lastPoly=curV.polys[k];
+      //   //     newPolysArr.push(lastPoly)
+      //   //   }
+      //   //   lastK=k;
+      //   // } while (k!=0)
+      //   //
+      //   // console.log(i);
+      //   // // console.log(curV.next);
+      //   // // console.log(newNextArr);
+      //   // console.log(curV.polys);
+      //   // console.log(newPolysArr);
+      //
+      //   // let newNextArr=[];
+      //   // let vertArr=P[curV.polys[0]].verts;//verts array of the first parent polygon
+      //   // let lastVert=V[vertArr[(indexOfElement(vertArr, curV)-1+schlafliQ)%schlafliQ]];
+      //   // while (true) {
+      //   //   newNextArr.push(lastVert);
+      //   //   vertArr=P[curV.polys[lastVert]].verts;//verts array of one of the parent polygons
+      //   //   // newNextArr.push(vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ]);//get the element after curV in vertArr, add it to newNextArr
+      //   //   var k=0;
+      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
+      //   //     if (arrayContains(P[curV.polys[k]].verts, newNextArr[newNextArr.length-1]) && k!=j) {
+      //   //       break;
+      //   //     }
+      //   //   }
+      //   //   if (k==curV.numPolys) {
+      //   //     console.log("bad!!!!!!!!!!!!!!!!");
+      //   //     break;
+      //   //   }
+      //   //   else {
+      //   //
+      //   //   }
+      //   //   let vertArr=P[curV.polys[0]].verts;
+      //   //   let lastVert=V[vertArr[(indexOfElement(vertArr, curV)-1+schlafliQ)%schlafliQ]];
+      //   //   console.log(indexOfElement(vertArr, i), (indexOfElement(vertArr, i)+1)%schlafliQ);
+      //   // }
+      //   // console.log(curV.next, newNextArr);
+      //   // console.log("");
+      // }
       for (var i=1; i<numPolys; i++) {// CALCULATE vertex positions
         // console.log("%c"+P[i].next[0]+":", "font-size:160%; color:lime", i);
         let v1=P[i].verts[0];
         let v2=P[i].verts[1];
         let parentPoly=P[P[i].next[0]];
-        
+      
         // centerAngFromXAxis, centerToOriginHyp, vertexOffsetAngle
         let parentVertIndex=indexOfElement(parentPoly.verts, P[i].verts[0]);
         // let angleOriginToParentToChild=-PI-parentPoly.centerAngFromXAxis+(0.5-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;
@@ -2832,20 +2854,20 @@
         else {
           P[i].centerAngFromXAxis=parentPoly.centerAngFromXAxis-hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
           P[i].centerToOriginHyp=hypSASGetThirdEdge(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
-          
+      
           // P[i].vertexOffsetAngle=0;
           P[i].vertexOffsetAngle=new HypTransform(P[i].centerAngFromXAxis, -P[i].centerToOriginHyp).applyTo(V[P[i].verts[0]].pos).ang();
-          
+      
           // console.log("angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
           // console.log(i, P[i].next[0], P[i].centerToOriginHyp);
         }
-
+      
         let prevC, newR;
-
+      
         if (!isEuclidean) {//calculate circle center
           prevC=getGeodesicCircleCenter(V[v1].pos, V[v2].pos);
           newR=(prevC.sub(V[v1].pos)).len();
-
+      
           // TODO: prevC.x breaks when offsetAng is a multiple of HPI
           // console.log(prevC);
           // console.log("M", M);
@@ -2856,15 +2878,15 @@
           // console.log(prevC.len());
           // console.log("");
         }
-
+      
         if (isEuclidean || prevC.len()>10000) {//mirror across a line
           for (var j=2; j<schlafliP; j++) {
             let newV=P[i].verts[j];
             let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
-
+      
             let s=V[v2].pos.sub(V[v1].pos);
             let k=V[v1].pos.sub(normalI);
-
+      
             let invertedI=V[v1].pos.mult(2).sub(normalI).sub(s.mult(2*(k.x*s.x+k.y*s.y)/(s.x*s.x+s.y*s.y)));
             V[P[i].verts[j]].setPos(invertedI);
           }
@@ -2875,7 +2897,7 @@
             let normalI=V[parentPoly.verts[(indexOfElement(parentPoly.verts, v1)-j+schlafliP)%schlafliP]].pos;//point to be mirrored, to get another position
             let prevCToNormalI=normalI.sub(prevC);
             let invertedI=prevC.add(prevCToNormalI.mult((newR/prevCToNormalI.len())**2));
-
+      
             // console.log(invertedI);
             // context.strokeStyle=new Color(randRange(30, 256), randRange(30, 256), randRange(30, 256)).rgb();
             // // context.strokeStyle="rgb(200, 200, 200)";
@@ -2884,11 +2906,11 @@
             // context.beginPath();
             // context.arc(prevCScreen.x, prevCScreen.y, newR*height/2, 0, TAU);
             // context.stroke();
-
+      
             V[P[i].verts[j]].setPos(invertedI);
           }
         }
-
+      
       }
       // /* DEBUG (dump graph info) */
       // for (var i=0; i<numVerts; i++) {
