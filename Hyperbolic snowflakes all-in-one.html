@@ -257,14 +257,14 @@
       <hr>
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
       <div id="word-mode-container">
-        <input type="text" id="dsf-operations-input" autocomplete="off" onchange="updateCurDSFOperations()">
+        <span>Operations </span><input type="text" id="dsf-operations-input" autocomplete="off" onchange="updateCurDSFOperations()">
       </div>
       <div id="drawing-mode-container">
         <div id="mirror-angle-container">
           <div id="mirror-angle-setting-container" style="padding-left: 0; padding-bottom:5px; padding-top: 2%"></div><!-- which mirror angle input setting to use (slope, deg, rad...) -->
           <div id="mirror-angle-value-container" style="padding-left: 0"></div>
         </div>
-        <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVerticesGeometrically()">Auto-generate geometrically</button>
+        <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVertexesGeometrically()">Auto-generate geometrically</button>
         <form style="margin-bottom: 3%" id="tiling-type-input" onchange="updateTilingType()"></form>
       </div>
 
@@ -285,7 +285,7 @@
       return Math.random()*max;
     }
     function rand0(max=1) {
-      return (Math.random()-0.5)*max;
+      return (Math.random()-0.5)*max*2;
     }
     function randInt(max=2) {
       return Math.floor(Math.random()*max);
@@ -421,7 +421,7 @@
       const mouseSlowingFactor=1.5;//0-infinity, sets how much mouse movement is smoothed out, see equation in mousemove event
       var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
       
-      // var schlafliSymbol=[6, 3];
+      var schlafliSymbol=[6, 3];
       // var schlafliSymbol=[3, 6];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[6, 4];
@@ -431,7 +431,7 @@
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
       // var schlafliSymbol=[4, 3];
-      var schlafliSymbol=[5, 3];
+      // var schlafliSymbol=[5, 3];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -559,7 +559,7 @@
       }
       
       var P=[];//Polygons array
-        var V=[];//Vertices array
+        var V=[];//Vertexes array
         var numPolys=0;
         var numVerts=0;
         schlafliPInput.value=schlafliP;
@@ -1038,7 +1038,7 @@
         // const startPos=new Vec2(0.5*Math.tan(HPI-PI/schlafliP), 0.5).mult(edgeVector.len());
         // const startPos=new Vec2(-0.5*Math.cot(PI/schlafliP), 0.5).mult(edgeVector.len());// TODO: untested
         // TODO: i don't know why this works
-        // set startPos - the point where the path begins drawing - as one of the vertices of the central tile
+        // set startPos - the point where the path begins drawing - as one of the vertexes of the central tile
         // scale the starting point, turning an edge length of 1 (tilingTransforms must create edges of length 1) into an edge length of edgeVector.len())
         
         // const startPos=new Vec2();
@@ -1855,7 +1855,7 @@
       // this.centerPos=new Vec2();
       this.centerAngFromXAxis=0;
       this.centerToOriginHyp=0;
-      this.vertexOffsetAngle=0;//angle by which to rotate the polygon so that one of its vertices would be horizontal relative to its center // TODO: i don't know what that means in the hyperbolic plane
+      this.vertexOffsetAngle=0;//angle by which to rotate the polygon so that one of its vertexes would be horizontal relative to its center // TODO: i don't know what that means in the hyperbolic plane
       this.addNext=function (n) {
         this.next[this.numNext]=n;
         this.numNext++;
@@ -2030,7 +2030,7 @@
       // context.fill();
       context.stroke();
     }
-    function drawAllVerts() {//draw circles on vertices of the hyperbolic grid
+    function drawAllVerts() {//draw circles on vertexes of the hyperbolic grid
       for (var i=0; i<numVerts; i++) {//all polygons
         V[i].draw();
       }
@@ -2222,7 +2222,7 @@
       clearAll();
     }
 
-    function autoGenerateVerticesGeometrically(ctx=context) {//a geometrical (and unreliable) method of generating a snowflakes' vertices (using mirrorM) // TODO: i don't remember how this works, and it's currently broken
+    function autoGenerateVertexesGeometrically(ctx=context) {//a geometrical (and unreliable) method of generating a snowflakes' vertexes (using mirrorM) // TODO: i don't remember how this works, and it's currently broken
       if (!canAutoGenerateGeometrically()) return;
       // let transf=inTileTransforms;
       
@@ -2484,9 +2484,9 @@
     function generateHyperbolicGraph() {//generate V and P, the vertexes and polygons of the hyperbolic grid
       // TODO: where is this all from? (i figured a lot of it out, but there must be something to cite)
       // TODO: redefine objects only when schlafliSymbol changes
-      if (true){// INITIAL object definition (first polygon and vertices with positions)
+      if (true){// INITIAL object definition (first polygon and vertexes with positions)
         P=[new Polygon()];//Polygons array
-        V=[];//Vertices array
+        V=[];//Vertexes array
         for (var i = 0; i < schlafliP; i++)
           V[i]=new Vert();
         for (var i = 0; i < schlafliP; i++) {
@@ -2554,86 +2554,252 @@
         }
       }
       // for (var k=0; k<2; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-      // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation
+      // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
       // for (var k=0; k<1+schlafliP; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
       for (var k=0; k<20; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-        // for (var i=0; i<0; i++) {//edges
-        // console.log("K",k);
+        // for (var k=0; k<1; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
+        console.log("%ck="+k, "color:lime; font-size:200%");
         // console.log(k, "/", P.length);
         if (typeof(P[k])==="undefined") break;//this polygon is undefined, presumably means that a sphere has been completed
-        if (P[k].numNext==schlafliP) continue;//don't make new polygons if the current polygon already has all neighbors, similar to previeous but happens sooner
+        if (P[k].numNext==schlafliP) continue;//don't make new polygons if the current polygon already has all neighbors, similar to previous but happens sooner
         for (var i=0; i<schlafliP; i++) {//edges
           // console.log(i);
+          console.log("%ci="+i, "color:lime; font-size:140%");
           //don't make new polygon towards parent (the first polygon doesn't have a parent)
           if (k!=0 && i==0) continue;
-          //get first 2 vertices of new polygon (usually pointing towards the parent)
-          var v1=P[k].verts[(1+i)%schlafliP];
+          //get first 2 vertexes of new polygon (usually pointing towards the parent)
+          var v1=P[k].verts[(1+i)%schlafliP];// TODO: rename? (v0 and v1)
           var v2=P[k].verts[i];
           
           //don't make new polygon if either vertex has already been filled
           if (V[v1].numPolys==schlafliQ || V[v2].numPolys==schlafliQ) continue;
-
-          // console.log("%c"+k, "color:lime; font-size:160%", i);
           
           P[numPolys]=new Polygon();
           P[numPolys].layer=P[k].layer+1;
+          
+          let numNewVertsNeeded=schlafliP-2;
+          
+          function findNextVertInLoop(curVert, previousVert) {
+            let curCandidate=undefined;// TODO: undefined isn't necessary?
+            for (var i = 0; i < V[curVert].numNext; i++) {
+              let potentialNewVert=V[curVert].next[i];//new vertex, need to check whether it is not the same as the current vertex and that it has the correct number of polygons
+              // console.log("V[curVert].next[i]", V[curVert].next[i], "V[curVert].next", V[curVert].next, "V[curVert]", V[curVert]);
+              let numPolysShared=0;
+              for (var j = 0; j < V[potentialNewVert].polys.length; j++) {
+                if (arrayContains(V[curVert].polys, V[potentialNewVert].polys[j])) numPolysShared++;
+              }
+              // if (potentialNewVert==previousVert || potentialNewVert<schlafliP) {//old and bad
+              if (potentialNewVert==previousVert || numPolysShared!=1) {//potentialNewVert shares two polygons with potentialNewVert, it's not valid (either the same or goes across an edge with both polygons present, which isn't the case for the desired vertex)
+                if (numPolysShared==0 || numPolysShared>2) {
+                  alert("alert009 two adjacent vertexes share "+numPolysShared+" polygons");
+                }
+                continue;
+              }
+              if (typeof(curCandidate)!="undefined") {// TODO: maybe this will never trigger and should be removed, plus uncommenting the "break;"
+                alert("alert007 multiple vertexes that don't have all polygons")
+              }
+              curCandidate=potentialNewVert;
+              // break;
+            }
+            return curCandidate;
+          }
+          
+          let curFurthestClockwiseVert=v2;
+          let curFurthestWiddershinsVert=v1;
+          let vertLoopBeginning=[];
+          let vertLoopEnding=[];
+          let widdershinsFromCurFurthestClockwiseVert=v1;//keep track of the vertex that is just widdershins of curFurthestClockwiseVert
+          let clockwiseFromCurFurthestWiddershinsVert=v2;//keep track of the vertex that is just clockwise of curFurthestWiddershinsVert
+          
+          let vertLoop=[];
+          let vertArc=[];
+          let neighborVertArc=[];
+          
+          // if (V[curFurthestClockwiseVert].numPolys==schlafliQ-1) {//the vertex from which i am searching has the right number of polygons
+          //   // let newFurthestClockwiseVert=undefined;
+          //   // for (var potentialNewPolyRelativeIndex = 0; potentialNewPolyRelativeIndex < V[curFurthestClockwiseVert].numNext; potentialNewPolyRelativeIndex++) {// TODO: rename
+          //   //   let potentialNewVert=V[curFurthestClockwiseVert].next[potentialNewPolyRelativeIndex];//new vertex, need to check whether it is not the same as the current vertex and that it has the correct number of polygons
+          //   //   console.log("potentialNewVert", potentialNewVert, "widdershinsFromCurFurthestClockwiseVert", widdershinsFromCurFurthestClockwiseVert);
+          //   //   if (potentialNewVert==widdershinsFromCurFurthestClockwiseVert) {//potentialNewVert is widdershins of curFurthestClockwiseVert, try another one // TODO: not actually v1
+          //   //     continue;
+          //   //   }
+          //   //   if (V[potentialNewVert].numPolys==schlafliQ-1) {
+          //   //     if (typeof(newFurthestClockwiseVert)!="undefined") {// TODO: maybe this will never trigger and should be removed
+          //   //       alert("alert007 multiple vertexes that don't have all polygons")
+          //   //     }
+          //   //     newFurthestClockwiseVert=curFurthestClockwiseVert;
+          //   //     // break;
+          //   //   }
+          //   // }
+          //   let newFurthestClockwiseVert=findNextVertInLoop(curFurthestClockwiseVert, widdershinsFromCurFurthestClockwiseVert);
+          //   console.log("newFurthestClockwiseVert in if", newFurthestClockwiseVert);
+          //   if (typeof(newFurthestClockwiseVert)!="undefined") {//a valid vertex was found
+          //     //add the vertex previously thought to be furthest as a vertex of the new polygon
+          //     vertLoopBeginning.push(curFurthestClockwiseVert);
+          //
+          //     widdershinsFromCurFurthestClockwiseVert=curFurthestClockwiseVert;
+          //     curFurthestClockwiseVert=newFurthestClockwiseVert;
+          //     console.log("numNewVertsNeeded--; from clockwise");
+          //     numNewVertsNeeded--;
+          //   }
+          // }
+          
+          for (var ii = 0; ii < schlafliP; ii++) {//find all vertexes belonging to the current polygon, clockwise from the parent vertexes. limit in case looking for the next vertex loops endlessly
+            if (V[curFurthestClockwiseVert].numPolys!=schlafliQ-1) {//the vertex from which i am searching has the right number of polygons
+              break;
+            }
+            let newFurthestClockwiseVert=findNextVertInLoop(curFurthestClockwiseVert, widdershinsFromCurFurthestClockwiseVert);
+            if (typeof(newFurthestClockwiseVert)=="undefined") {
+              break;
+            }
+            //add the vertex previously thought to be furthest as a vertex of the new polygon
+            vertLoopBeginning.push(curFurthestClockwiseVert);
+            
+            widdershinsFromCurFurthestClockwiseVert=curFurthestClockwiseVert;
+            curFurthestClockwiseVert=newFurthestClockwiseVert;
+            // console.log("numNewVertsNeeded--; from clockwise");
+            numNewVertsNeeded--;
+          }
+          
+          if (vertLoopBeginning.length==schlafliP) {//a cycle of existing vertexes has been found
+            console.log("Loop!");
+            vertLoop=[v1].concat(vertLoopBeginning); vertLoop.pop();//vertLoop is like vertLoopBeginning (which is the entire loop) but shifted over by one
+            neighborVertArc=[v1].concat(vertLoopBeginning);
+          }
+          else {
+            // console.log("curFurthestClockwiseVert", curFurthestClockwiseVert);
+            
+            
+            for (var ii = 0; ii < schlafliP; ii++) {//find all vertexes belonging to the current polygon, widdershins from the parent vertexes. limit is somewhat arbitrary
+              if (V[curFurthestWiddershinsVert].numPolys!=schlafliQ-1) {//the vertex from which i am searching has the right number of polygons
+                break;
+              }
+              // for (var potentialNewPolyRelativeIndex = 0; potentialNewPolyRelativeIndex < V[curFurthestWiddershinsVert].numNext; potentialNewPolyRelativeIndex++) {
+              //   let potentialNewVert=V[curFurthestWiddershinsVert].next[potentialNewPolyRelativeIndex];//new vertex, need to check whether it is not the same as the current vertex and that it has the correct number of polygons
+              //   if (potentialNewVert==v2) {//potentialNewVert is the same as the last vertex, try another one
+              //     continue;
+              //   }
+              //   if (V[potentialNewVert].numPolys==schlafliQ-1) {
+              //     if (typeof(newFurthestWiddershinsVert)!="undefined") {
+              //       alert("alert007 multiple vertexes that don't have all polygons")
+              //     }
+              //     newFurthestWiddershinsVert=curFurthestWiddershinsVert;
+              //     // break;
+              //   }
+              // }
+              let newFurthestWiddershinsVert=findNextVertInLoop(curFurthestWiddershinsVert, clockwiseFromCurFurthestWiddershinsVert);
+              if (typeof(newFurthestWiddershinsVert)=="undefined") {
+                break;
+              }
+              //add the vertex previously thought to be furthest as a vertex of the new polygon
+              vertLoopEnding.unshift(curFurthestWiddershinsVert);
+              
+              clockwiseFromCurFurthestWiddershinsVert=curFurthestWiddershinsVert;
+              curFurthestWiddershinsVert=newFurthestWiddershinsVert;
+              // console.log("numNewVertsNeeded--; from widdershins");
+              numNewVertsNeeded--;
+            }
+            
+            vertArc=[curFurthestClockwiseVert];
+            for (var j = 0; j < numNewVertsNeeded; j++) {
+              var newVert=numVerts;
+              V[newVert]=new Vert();
+              vertArc.push(newVert);
+              // V[newVert].addPoly(numPolys);
+              // P[numPolys].addVert(newVert);
+              numVerts++;
+            }
+            vertArc.push(curFurthestWiddershinsVert)
+            
+            // let vertLoop=[];
+            // if (vertLoopEnding.length==0) {
+            //   vertLoopBeginning.concat(vertArc)
+            // }
+            // else {
+            //   [vertLoopEnding[vertLoopEnding.length-1]].concat(vertLoopBeginning).concat(vertArc).concat(vertLoopEnding)
+            // }
+            vertLoop=vertLoopEnding.length==0 ? [vertArc[vertArc.length-1]].concat(vertLoopBeginning).concat(vertArc) : [vertLoopEnding[vertLoopEnding.length-1]].concat(vertLoopBeginning).concat(vertArc).concat(vertLoopEnding);// TODO: do the edge cases work?
+            vertLoop.pop();
+            neighborVertArc=[vertArc[vertArc.length-1]].concat(vertLoopEnding).concat(vertLoopBeginning).concat([vertArc[0]]);//vertexes that already belong to neighbors of the current polygon, used to add neighborship
+          }
+          
+          console.log("numNewVertsNeeded", numNewVertsNeeded);
+                    
+          console.log(vertArc);
 
-          //neighborship of new polygon and its parent
-          P[k].addNext(numPolys);
-          P[numPolys].addNext(k);
-
-          //add 2 vertices of parent polygon to new polygon and vice versa
-          P[numPolys].addVert(v1);
-          P[numPolys].addVert(v2);
-          V[v1].addPoly(numPolys);
-          V[v2].addPoly(numPolys);
-
-          var makeV3=V[v2].numNext<schlafliQ;
-          var makeV4=V[v1].numNext<schlafliQ;
+          console.log("vert loop parts", vertLoopBeginning, vertLoopEnding);
+          console.log(vertLoop, neighborVertArc);
+          
+          //add neighbors of the current polygon
+          for (var ii = 1; ii < neighborVertArc.length; ii++) {
+            let curPolys=V[neighborVertArc[ii-1]].polys;//potential polygons which have the first needed vertex, one of which also has the other
+            let resPoly;
+            for (var jj = 0; jj < curPolys.length; jj++) {
+              if (arrayContains(P[curPolys[jj]].verts, neighborVertArc[ii])) {
+                if (typeof(resPoly)!="undefined") {
+                  alert("alert008 multiple polygons with two given vertexes");
+                }
+                resPoly=curPolys[jj];
+                break;
+              }
+            }
+            P[resPoly].addNext(numPolys);
+            P[numPolys].addNext(resPoly);
+          }
+          
+          
+          //add vertexes of the current polygon
+          for (var addedVertIndex = 0; addedVertIndex < vertLoop.length; addedVertIndex++) {
+            V[vertLoop[addedVertIndex]].addPoly(numPolys);
+            P[numPolys].addVert(vertLoop[addedVertIndex]);
+          }
           
           // if (k==4) {
           //   // console.log(makeV3, makeV4);
           //   console.log("gggggggggggggg");
           // }
-          
-          // console.log(makeV3, makeV4, "via "+V[v1].numNext+", "+V[v2].numNext+" <? "+schlafliQ);
-
-          var vertArc=[];
-          if (makeV3) {
-            vertArc.push(v2);
-          }
-          else {
-            vertArc.push(V[v2].next[schlafliQ-1]);
-
-            V[vertArc[0]].addPoly(numPolys);
-            P[numPolys].addVert(vertArc[0]);
-
-            P[V[v2].polys[V[v2].numPolys-2]].addNext(numPolys);
-            P[numPolys].addNext(V[v2].polys[V[v2].numPolys-2]);
-          }
-
-          // for (var j = 4-makeV3-makeV4; j < schlafliP; j++) {
-          for (var j = 0; j < schlafliP-4+makeV3+makeV4; j++) {
-            var newVert=numVerts;
-            V[newVert]=new Vert();
-            vertArc.push(newVert);
-            V[newVert].addPoly(numPolys);
-            P[numPolys].addVert(newVert);
-            numVerts++;
-          }
-
-          if (makeV4) {
-            vertArc.push(v1);
-          }
-          else {
-            vertArc.push(V[v1].next[schlafliQ-1]);
-
-            V[vertArc[vertArc.length-1]].addPoly(numPolys);
-            P[numPolys].addVert(vertArc[vertArc.length-1]);
-
-            P[V[v1].polys[V[v1].numPolys-2]].addNext(numPolys);
-            P[numPolys].addNext(V[v1].polys[V[v1].numPolys-2]);
-          }
+          //
+          // var makeV3=V[v2].numNext<schlafliQ;
+          // var makeV4=V[v1].numNext<schlafliQ;
+          //
+          // // console.log(makeV3, makeV4, "via "+V[v1].numNext+", "+V[v2].numNext+" <? "+schlafliQ);
+          //
+          // var vertArc=[];
+          // if (makeV3) {
+          //   vertArc.push(v2);
+          // }
+          // else {
+          //   vertArc.push(V[v2].next[schlafliQ-1]);
+          //
+          //   V[vertArc[0]].addPoly(numPolys);
+          //   P[numPolys].addVert(vertArc[0]);
+          //
+          //   P[V[v2].polys[V[v2].numPolys-2]].addNext(numPolys);
+          //   P[numPolys].addNext(V[v2].polys[V[v2].numPolys-2]);
+          // }
+          //
+          // // for (var j = 4-makeV3-makeV4; j < schlafliP; j++) {
+          // for (var j = 0; j < schlafliP-4+makeV3+makeV4; j++) {
+          //   var newVert=numVerts;
+          //   V[newVert]=new Vert();
+          //   vertArc.push(newVert);
+          //   V[newVert].addPoly(numPolys);
+          //   P[numPolys].addVert(newVert);
+          //   numVerts++;
+          // }
+          //
+          // if (makeV4) {
+          //   vertArc.push(v1);
+          // }
+          // else {
+          //   vertArc.push(V[v1].next[schlafliQ-1]);
+          //
+          //   V[vertArc[vertArc.length-1]].addPoly(numPolys);
+          //   P[numPolys].addVert(vertArc[vertArc.length-1]);
+          //
+          //   P[V[v1].polys[V[v1].numPolys-2]].addNext(numPolys);
+          //   P[numPolys].addNext(V[v1].polys[V[v1].numPolys-2]);
+          // }
           
           for (var j = 1; j < vertArc.length; j++) {
             if (!(vertArc[j]==vertArc[j-1] || arrayContains(V[vertArc[j]].next, vertArc[j-1]))) {
@@ -2646,10 +2812,12 @@
             }
           }
           
+          console.log("");
+          
           numPolys++;
         }
       }
-      // for (var i=0; i<numVerts; i++) {// ORDER the vertices
+      // for (var i=0; i<numVerts; i++) {// ORDER the vertexes
       //   let curV=V[i];
       //   var j=0;
       //   for (; j < curV.polys.length; j++) {
@@ -2701,7 +2869,7 @@
       //     //     break;
       //     //   }
       //     // }
-      //     // if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
+      //     // if (k!=curV.polys.length) {//another polygon with the 2 vertexes was found
       //     //   if () {
       //     //   }
       //     //   else {
@@ -2754,7 +2922,7 @@
       //   //       break;
       //   //     }
       //   //   }
-      //   //   if (k!=curV.polys.length) {//another polygon with the 2 vertices was found
+      //   //   if (k!=curV.polys.length) {//another polygon with the 2 vertexes was found
       //   //     if () {
       //   //     }
       //   //     else {
@@ -2778,7 +2946,7 @@
       //   //   let vertArr=P[lastPoly].verts;//verts array of the first parent polygon
       //   //   let lastVert=vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ];
       //   //   k=0;
-      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
+      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertexes
       //   //     // console.log(P[curV.polys[k]].verts, lastVert);
       //   //     if (arrayContains(P[curV.polys[k]].verts, lastVert) && k!=lastK) {
       //   //       break;
@@ -2810,7 +2978,7 @@
       //   //   vertArr=P[curV.polys[lastVert]].verts;//verts array of one of the parent polygons
       //   //   // newNextArr.push(vertArr[(indexOfElement(vertArr, i)-1+schlafliQ)%schlafliQ]);//get the element after curV in vertArr, add it to newNextArr
       //   //   var k=0;
-      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertices
+      //   //   for (; k < curV.numPolys; k++) {//find another polygon with curV and last found vertex as its vertexes
       //   //     if (arrayContains(P[curV.polys[k]].verts, newNextArr[newNextArr.length-1]) && k!=j) {
       //   //       break;
       //   //     }
@@ -2842,7 +3010,7 @@
         // let angleOriginToParentToChild=(parentVertIndex+0.5)*TAU/schlafliP+P[k].vertexOffsetAngle;// TODO: won't work, it's a simplified version of the above line
         // console.log("parentPoly.centerAngFromXAxis", parentPoly.centerAngFromXAxis, "parentVertIndex", parentVertIndex, "(1.5-parentVertIndex)*TAU/schlafliP", (1.5-parentVertIndex)*TAU/schlafliP, "parentPoly.vertexOffsetAngle", parentPoly.vertexOffsetAngle, "angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
         // console.log("angleOriginToParentToChild", angleOriginToParentToChild);
-        if (i<=schlafliP) {//the surrounding of the first tile // TODO: shouldn't be necessary, here for bugfixing
+        if (i<=schlafliP) {//the surrounding of the first tile // TODO: this case shouldn't be necessary, it's here for bugfixing
         // if (false) {
           P[i].centerAngFromXAxis=(0.5-i)*TAU/schlafliP;
           P[i].centerToOriginHyp=2*centerToEdgeMidpointHyp;
@@ -2915,7 +3083,7 @@
       // /* DEBUG (dump graph info) */
       // for (var i=0; i<numVerts; i++) {
       //   console.log("V[" + i + "]");
-      //   console.log("Adjacent vertices:", V[i].next);
+      //   console.log("Adjacent vertexes:", V[i].next);
       //   console.log("Polygons:", V[i].polys);
       //   console.log(round(V[i].pos.x), round(V[i].pos.y));
       //   console.log("");
@@ -2924,7 +3092,7 @@
       // for (var i=0; i<numPolys; i++) {
       //   console.log("P[" + i + "]");
       //   console.log("Adjacent polygons:", P[i].next);
-      //   console.log("Vertices:", P[i].verts);
+      //   console.log("Vertexes:", P[i].verts);
       //   console.log("");
       // }
       // console.log("numVerts", numVerts);
@@ -3010,7 +3178,7 @@
       movementColors=[];
       movementSizes=[];
       curMovement=-1;
-      // autoGenerateVerticesGeometrically();
+      // autoGenerateVertexesGeometrically();
     }
     function resizeWithWait() {//call this in the resize event. on the event it sets a timer (minFramesSinceResize frames in length) after which it calls resize()
       if (framesSinceResize<minFramesSinceResize) {
