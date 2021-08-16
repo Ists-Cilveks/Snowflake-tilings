@@ -421,17 +421,18 @@
       const mouseSlowingFactor=1.5;//0-infinity, sets how much mouse movement is smoothed out, see equation in mousemove event
       var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
       
-      var schlafliSymbol=[6, 3];
+      // var schlafliSymbol=[6, 3];
       // var schlafliSymbol=[3, 6];
       // var schlafliSymbol=[4, 6];
       // var schlafliSymbol=[6, 4];
       // var schlafliSymbol=[5, 4];
-      // var schlafliSymbol=[4, 4];
+      var schlafliSymbol=[4, 4];
       // var schlafliSymbol=[4, 7];
       // var schlafliSymbol=[7, 3];
       // var schlafliSymbol=[10, 3];
       // var schlafliSymbol=[4, 3];
       // var schlafliSymbol=[5, 3];
+      // var schlafliSymbol=[3, 4];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -1004,7 +1005,7 @@
           if (iterations==numIterations-1) {
             globalEdgeAngleOffset=runningAng;//update globalEdgeAngleOffset // TODO: done here out of convenience, maybe should be made separate
           }
-                    
+          
           if (runningLen>edgeLengthHyp) {
             segLenUpperBound=segLen;
           }
@@ -1256,31 +1257,19 @@
     // curDSF=curDSF.extend0();
     // var curDSF=new DSF([0], []);
     // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend1();
     // curDSF=curDSF.swap1();// TODO: generation seems broken // TODO: why did i write that???
     // curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
-    // curDSF=curDSF.swap1();
     // curDSF=curDSF.extend0();
     // curDSF=curDSF.extend1();
-    // curDSF=curDSF.extend0();
-    // curDSF=curDSF.swap0();
-    // curDSF=curDSF.swap1();
     // curDSF=curDSF.trimIfPossible();
     // logCurDSFInfo();
     // console.log("%cresult", "font-size:200%; padding:1%");
     // console.log(curDSF.w0, curDSF.w1);
     // console.log("Result: |w0|="+curDSF.w0.length+", |w1|="+curDSF.w1.length);
     
+    // dsfOperationsInput.value="";
+    dsfOperationsInput.value="e1";
     // dsfOperationsInput.value="e1e0s0";
-    // dsfOperationsInput.value="e1";
-    dsfOperationsInput.value="";
     updateCurDSFOperations();
 
     var resultingDSFArray=[];
@@ -1817,31 +1806,31 @@
             
       //algorithm adapted from "Equation of circle when three points on the circle are given" https://www.geeksforgeeks.org/equation-of-circle-when-three-points-on-the-circle-are-given/ (retrieved 26.07.2021)
       
-      let x12 = (p1.x - p2.x);
-      let x13 = (p1.x - p3.x);
+      let x12=p1.x - p2.x;
+      let x13=p1.x - p3.x;
       
-      let y12 = (p1.y - p2.y);
-      let y13 = (p1.y - p3.y);
+      let y12=p1.y - p2.y;
+      let y13=p1.y - p3.y;
             
       // p1.x^2 - p3.x^2
-      let sx13 = Math.pow(p1.x, 2) - Math.pow(p3.x, 2);
+      let sx13=Math.pow(p1.x, 2) - Math.pow(p3.x, 2);
       
       // p1.y^2 - p3.y^2
-      let sy13 = Math.pow(p1.y, 2) - Math.pow(p3.y, 2);
+      let sy13=Math.pow(p1.y, 2) - Math.pow(p3.y, 2);
       
-      let sx21 = Math.pow(p2.x, 2) - Math.pow(p1.x, 2);
-      let sy21 = Math.pow(p2.y, 2) - Math.pow(p1.y, 2);
+      let sx21=Math.pow(p2.x, 2) - Math.pow(p1.x, 2);
+      let sy21=Math.pow(p2.y, 2) - Math.pow(p1.y, 2);
       
-      let f = (sx13 * x12
-              + sy13 * x12
-              + sx21 * x13
-              + sy21 * x13)
-              / (2 * (y13 * x12 - y12 * x13));
-      let g = (sx13 * y12
-              + sy13 * y12
-              + sx21 * y13
-              + sy21 * y13)
-              / (2 * (x13 * y12 - x12 * y13));
+      let f=(sx13 * x12
+           + sy13 * x12
+           + sx21 * x13
+           + sy21 * x13)
+           / (2 * (y13 * x12 - y12 * x13));
+      let g=(sx13 * y12
+           + sy13 * y12
+           + sx21 * y13
+           + sy21 * y13)
+           / (2 * (x13 * y12 - x12 * y13));
       
       return new Vec2(g, f);
     }
@@ -2423,6 +2412,30 @@
           // curDSF.segmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
           // drawFromCurDSF();
           
+          // // Testing whether HypTransform works // TODO: looks like it does, but the values created during graph generation are incorrect
+          // // let timeUnits=colorChangeSteps/10;
+          // let timeUnits=colorChangeSteps/20;
+          // // console.log("");
+          // // let transf=new HypTransform(timeUnits, HPI, 0);
+          // // let transf=new HypTransform(0, HPI, 0);
+          // // let transf=new HypTransform(-1.04, 1.23096, 1);
+          // // let transf=new HypTransform(-PI, 1.23096, 1);
+          // let transf=new HypTransform(-1.04*5, 1.23096, 1);
+          // // let point1=new Vec2(0, 0);
+          // // let point1=new Vec2(0, 1);
+          // let point1=new Vec2(0.355, -0.615);
+          // let point2=transf.applyTo(point1)
+          // // console.log(transf);
+          // // console.log(point2);
+          // let screen1=point1.mult(globalScaling).screen();
+          // let screen2=point2.mult(globalScaling).screen();
+          // // context.fillStyle="red";
+          // // context.fillRect(screen1.x-3,screen1.y-3,6,6);
+          // // context.fillRect(screen2.x-3,screen2.y-3,6,6);
+          // changingContext.fillStyle="red";
+          // changingContext.fillRect(screen1.x-3,screen1.y-3,6,6);
+          // changingContext.fillRect(screen2.x-3,screen2.y-3,6,6);
+          
           // let mouseScreenPos=mousePos.unscreen();//mouse position, no longer in screen coordinates
           let mouseScreenPos=mousePos.unscreen().div(globalScaling);//mouse position, no longer in screen coordinates // TODO: rename
           if (mouseDown) {
@@ -2484,7 +2497,7 @@
     function generateHyperbolicGraph() {//generate V and P, the vertexes and polygons of the hyperbolic grid
       // TODO: where is this all from? (i figured a lot of it out, but there must be something to cite)
       // TODO: redefine objects only when schlafliSymbol changes
-      if (true){// INITIAL object definition (first polygon and vertexes with positions)
+      if (true){// initial object definition (first polygon and vertexes with positions)
         P=[new Polygon()];//Polygons array
         V=[];//Vertexes array
         for (var i = 0; i < schlafliP; i++)
@@ -2526,7 +2539,7 @@
             //formula adapted from "Spherical Trigonometry: For the Use of Colleges and Schools by I. Todhunter", retrieved 28.07.2021 from https://www.gutenberg.org/ebooks/19770
             return Math.acos( (Math.cos(A)+Math.cos(B)*Math.cos(C)) / (Math.sin(B)*Math.sin(C)) );
           }
-                    
+          
           centerToVertexEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(HPI, PI/schlafliQ, PI/schlafliP));
 
           centerToEdgeMidpointEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(PI/schlafliQ, PI/schlafliP, HPI));
@@ -2553,18 +2566,18 @@
           V[i].setPos(new Vec2(centerToVertexEuc*Math.cos(i*TAU/schlafliP+offsetAng)+offsetX, -centerToVertexEuc*Math.sin(i*TAU/schlafliP+offsetAng)+offsetY));
         }
       }
-      // for (var k=0; k<2; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
+      // for (var k=0; k<2; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
       // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
       // for (var k=0; k<1+schlafliP; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-      for (var k=0; k<20; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-        // for (var k=0; k<1; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-        console.log("%ck="+k, "color:lime; font-size:200%");
+      for (var k=0; k<20; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
+        // for (var k=0; k<1; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
+        // console.log("%ck="+k, "color:lime; font-size:200%");
         // console.log(k, "/", P.length);
         if (typeof(P[k])==="undefined") break;//this polygon is undefined, presumably means that a sphere has been completed
         if (P[k].numNext==schlafliP) continue;//don't make new polygons if the current polygon already has all neighbors, similar to previous but happens sooner
         for (var i=0; i<schlafliP; i++) {//edges
           // console.log(i);
-          console.log("%ci="+i, "color:lime; font-size:140%");
+          // console.log("%ci="+i, "color:lime; font-size:140%");
           //don't make new polygon towards parent (the first polygon doesn't have a parent)
           if (k!=0 && i==0) continue;
           //get first 2 vertexes of new polygon (usually pointing towards the parent)
@@ -2662,7 +2675,7 @@
           }
           
           if (vertLoopBeginning.length==schlafliP) {//a cycle of existing vertexes has been found
-            console.log("Loop!");
+            // console.log("Loop!");
             vertLoop=[v1].concat(vertLoopBeginning); vertLoop.pop();//vertLoop is like vertLoopBeginning (which is the entire loop) but shifted over by one
             neighborVertArc=[v1].concat(vertLoopBeginning);
           }
@@ -2723,12 +2736,12 @@
             neighborVertArc=[vertArc[vertArc.length-1]].concat(vertLoopEnding).concat(vertLoopBeginning).concat([vertArc[0]]);//vertexes that already belong to neighbors of the current polygon, used to add neighborship
           }
           
-          console.log("numNewVertsNeeded", numNewVertsNeeded);
-                    
-          console.log(vertArc);
-
-          console.log("vert loop parts", vertLoopBeginning, vertLoopEnding);
-          console.log(vertLoop, neighborVertArc);
+          // console.log("numNewVertsNeeded", numNewVertsNeeded);
+          //
+          // console.log(vertArc);
+          //
+          // console.log("vert loop parts", vertLoopBeginning, vertLoopEnding);
+          // console.log(vertLoop, neighborVertArc);
           
           //add neighbors of the current polygon
           for (var ii = 1; ii < neighborVertArc.length; ii++) {
@@ -2746,7 +2759,11 @@
             P[resPoly].addNext(numPolys);
             P[numPolys].addNext(resPoly);
           }
-          
+          {//swap the first poly in the neighbor array with the parent poly (so that the parent polygon is the first in the array, this is relevant for vertex position generation and further sorting)
+            let parentPolyFromNeighbors=P[numPolys].next[vertLoopEnding.length];
+            P[numPolys].next[vertLoopEnding.length]=P[numPolys].next[0];
+            P[numPolys].next[0]=parentPolyFromNeighbors
+          }
           
           //add vertexes of the current polygon
           for (var addedVertIndex = 0; addedVertIndex < vertLoop.length; addedVertIndex++) {
@@ -2812,12 +2829,26 @@
             }
           }
           
-          console.log("");
+          // console.log("");
           
           numPolys++;
         }
       }
-      // for (var i=0; i<numVerts; i++) {// ORDER the vertexes
+      // TODO: is any of the ordering necessary?
+      
+      // for (var i = 0; i < P.length; i++) {// order the neighbors of the polygons
+      //   let curPoly=P[i];
+      //   let lastPolyIndex=curPoly.next[0];
+      //   let newNextArray=[lastPolyIndex];
+      //   for (var j = 1; j < schlafliP; j++) {
+      //     for (var k = 0; k < ; k++) {
+      //       [i]
+      //     }
+      //     newNextArray.push(lastPolyIndex);
+      //   }
+      // }
+      
+      // for (var i=0; i<numVerts; i++) {// order the vertexes
       //   let curV=V[i];
       //   var j=0;
       //   for (; j < curV.polys.length; j++) {
@@ -2997,7 +3028,8 @@
       //   // console.log(curV.next, newNextArr);
       //   // console.log("");
       // }
-      for (var i=1; i<numPolys; i++) {// CALCULATE vertex positions
+      
+      for (var i=1; i<numPolys; i++) {// calculate vertex positions
         // console.log("%c"+P[i].next[0]+":", "font-size:160%; color:lime", i);
         let v1=P[i].verts[0];
         let v2=P[i].verts[1];
@@ -3020,6 +3052,9 @@
           // console.log(i, P[i].next[0], P[i].vertexOffsetAngle);
         }
         else {
+          console.log("%c"+i, "font-size:170%");
+          console.log(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
+          console.log(parentPoly.centerAngFromXAxis, "-", hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp));
           P[i].centerAngFromXAxis=parentPoly.centerAngFromXAxis-hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
           P[i].centerToOriginHyp=hypSASGetThirdEdge(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
       
@@ -3204,13 +3239,15 @@
     generateHyperbolicGraph();
     
     setWordModeEnabled(true);
+    // setWordModeEnabled(false);
     initialDrawingReady=true;
     
     resize();
     update();
 
-    // console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
+    console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
     // updateMirrorAngle(0);
+    // console.log(tilingTransforms);
     // tilingTypeName="none"; setTilingTransforms(); clearAll();
 
     function mouseUp(){
