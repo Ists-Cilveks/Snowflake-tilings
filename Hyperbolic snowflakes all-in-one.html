@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<!-- TODO: elaborate notes -->
+<!-- TODO: more detailed notes -->
 <!--
   This code generates double square tiles, tilable snowflakes and allows drawing of symmetrical tilable shapes
 
@@ -27,7 +27,7 @@
       left: 0;
       top: 0;
     }
-    div span {
+    div, span {
       color: white;
       /* padding: 5px 15px; */
       font-size: 16px;
@@ -258,6 +258,7 @@
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
       <div id="word-mode-container">
         <span>Operations </span><input type="text" id="dsf-operations-input" autocomplete="off" onchange="updateCurDSFOperations()"><br>
+        <div>Input a string of the operations s0, s1, e0, e1, t0, t1, T, d</div>
         <span>|w<sub>0</sub>|=</span><span id="w0-length-display"></span><br>
         <span>|w<sub>1</sub>|=</span><span id="w1-length-display"></span><br>
       </div>
@@ -3184,7 +3185,7 @@
       curDSF.updateSegmentLength();
       curDSF.updateMirrorM();
     }
-    function DSFOperationNameFromString(str) {//given a shortened operation name, returns the full function name or undefined if it's invalid
+    function DSFOperationNameFromString(str) {//given the shortened name of one operation, returns the full function name or undefined if it's invalid
       let res="";
       if (str.length==2 && (str[0]=="e" || str[0]=="s" || str[0]=="t") && (str[1]=="0" || str[1]=="1")) {
         res+={e:"extend", s:"swap", t:"trim"}[str[0]];
@@ -3351,6 +3352,14 @@
       // console.log();
       let mirrorSlope=Math.tan(HPI/2-edgeVec.ang());
       console.log("slope", mirrorSlope);
+    }
+    
+    function logOpsInfo(str) {
+      let dsf=getDSFFromOperations(str);
+      let u0v0=dsf.getU0V0();
+      let u1v1=dsf.getU1V1();
+      console.log("0:", u0v0.u, u0v0.v);
+      console.log("1:", u1v1.u, u1v1.v);
     }
 
     function mouseUp(){
