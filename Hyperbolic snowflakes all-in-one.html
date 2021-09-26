@@ -31,8 +31,8 @@
       color: white;
       /* padding: 5px 15px; */
       font-size: 16px;
-      min-width: 90px;
-      min-height: 15px;
+      /* min-width: 90px; */
+      /* min-height: 15px; */
       text-decoration: none;
       /* display: block; */
     }
@@ -267,7 +267,9 @@
           <div id="mirror-angle-setting-container" style="padding-left: 0; padding-bottom:5px; padding-top: 2%"></div><!-- which mirror angle input setting to use (slope, deg, rad...) -->
           <div id="mirror-angle-value-container" style="padding-left: 0"></div>
         </div>
-        <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVertexesGeometrically()">Auto-generate geometrically</button>
+        <div style="display: none">
+          <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVertexesGeometrically()">Auto-generate geometrically</button>
+        </div>
       </div>
       <form style="margin-bottom: 3%" id="tiling-type-input" onchange="updateTilingType()"></form>
 
@@ -447,14 +449,15 @@
       var tilingTypeName="regular using schlafli";
       // var tilingTypeName="anisohedral";
       
-      var tilingTypes=[["none"], ["hypTest"], ["regular using schlafli"], ["anisohedral"]];
+      // var tilingTypes=[["none"], ["hypTest"], ["regular using schlafli"], ["anisohedral"]];
+      var tilingTypes=[["none", "single tile"], ["regular using schlafli", "tiling"]];
       // var tilingTypeName=tilingTypes[tilingTypeIndex][0];
       
       // var tilingTypeName;
       var tilingTypeIndex;
       for (var i = 0; i < tilingTypes.length; i++) {
         let t=tilingTypes[i];//the current tiling type
-        document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[0]+"</label>";// TODO: too long
+        document.getElementById("tiling-type-input").innerHTML+="<input id='tiling-type-"+i+"' type='radio' name='tiling-type' value='"+t[0]+"'><label for='tiling-type-"+i+"'>"+t[1]+"</label>";// TODO: too long
         
         if (tilingTypes[i][0]==tilingTypeName) {//set tilingTypeIndex
           tilingTypeIndex=i;
@@ -1972,31 +1975,31 @@
 
     function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       // if (true) {//arc edges
-        // if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
-        //   var circleCenter=getGeodesicCircleCenter(v1, v2);
-        //   var newR=(circleCenter.sub(v1)).len();
-        // }
-        // if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
-        // // if (newR>=10000 || Number.isNaN(newR)) {// TODO: removing isEuclidean conditions seems to successfully draw euclidean shapes in the poincare disk, if that makes sense. maybe it'll cause problems down the line!
-        //   // var v1Screen=v1.mult(globalScaling).screen();
-        //   // ctx.moveTo(v1Screen.x, v1Screen.y);
-        //   var v2Screen=v2.mult(globalScaling).screen();
-        //   ctx.lineTo(v2Screen.x, v2Screen.y);
-        // }
-        // else {
-        //   // console.log(newR);
-        //   var circleCenterScreen=circleCenter.mult(globalScaling).screen();
-        //   var ang1=-v1.sub(circleCenter).ang();
-        //   var ang2=-v2.sub(circleCenter).ang();
-        //   var widd=(ang1-ang2+TAU)%TAU<=PI;
-        //   ctx.arc(circleCenterScreen.x, circleCenterScreen.y, newR*globalScaling*height/2, ang1, ang2, widd);
-        // }
+        if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
+          var circleCenter=getGeodesicCircleCenter(v1, v2);
+          var newR=(circleCenter.sub(v1)).len();
+        }
+        if (isEuclidean || newR>=10000 || Number.isNaN(newR)) {// TODO: there has to be a better way to avoid huge radiuses (like homogenous coordinates)
+        // if (newR>=10000 || Number.isNaN(newR)) {// TODO: removing isEuclidean conditions seems to successfully draw euclidean shapes in the poincare disk, if that makes sense. maybe it'll cause problems down the line!
+          // var v1Screen=v1.mult(globalScaling).screen();
+          // ctx.moveTo(v1Screen.x, v1Screen.y);
+          var v2Screen=v2.mult(globalScaling).screen();
+          ctx.lineTo(v2Screen.x, v2Screen.y);
+        }
+        else {
+          // console.log(newR);
+          var circleCenterScreen=circleCenter.mult(globalScaling).screen();
+          var ang1=-v1.sub(circleCenter).ang();
+          var ang2=-v2.sub(circleCenter).ang();
+          var widd=(ang1-ang2+TAU)%TAU<=PI;
+          ctx.arc(circleCenterScreen.x, circleCenterScreen.y, newR*globalScaling*height/2, ang1, ang2, widd);
+        }
       // }
       // else {//straight edges
         // drawLine(v1, v2);//straight lines, alternative to arcs
-        let v1Scaled=v1.mult(globalScaling);
-        let v2Scaled=v2.mult(globalScaling);
-        drawLine(v1Scaled, v2Scaled);//straight lines, alternative to arcs
+        // let v1Scaled=v1.mult(globalScaling);
+        // let v2Scaled=v2.mult(globalScaling);
+        // drawLine(v1Scaled, v2Scaled);//straight lines, alternative to arcs
       // }
     }
     function pathPoincarePoly(vertArr) {//add one polygon's (as an array of indexes in V[]) path to context
@@ -2517,9 +2520,9 @@
       if( //if the input values are reasonable, change variables accordingly
           newSchlafliSymbol[0]>=3 && newSchlafliSymbol[0]<=30
           && newSchlafliSymbol[1]>=3 && newSchlafliSymbol[1]<=30
-          // && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
+          && (newSchlafliSymbol[0]-2)*(newSchlafliSymbol[1]-2)>=4
         )
-        {// TODO: change arbitrary limits (particularly upper ones) // TODO: allow spherical geometry too!
+        {// TODO: change arbitrary limits (particularly upper ones)
           schlafliInputContainer.style.backgroundColor="";
           if (arraysShallowEqual(schlafliSymbol, newSchlafliSymbol)) schlafliSymbolChanged=false;
           schlafliSymbol=newSchlafliSymbol;
@@ -3306,53 +3309,53 @@
     resize();
     update();
 
-    console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
+    // console.log("%cTest", "font-weight:bold; color:lime; font-size:160%");
     // updateMirrorAngle(0);
     // console.log(tilingTransforms);
     // tilingTypeName="none"; setTilingTransforms(); clearAll();
     
-    let numTestOps=5;
-    for (var i = 0; i < 1<<numTestOps; i++) {
-      let binStr="";
-      let opStr="e1";
-      for (var j = 0; j < numTestOps; j++) {
-        if (1<<j & i) {
-          binStr+="1";
-          opStr+="e1s1";
-        }
-        else {
-          binStr+="0";
-          opStr+="e0s1";
-        }
-      }
-      // console.log(binStr);
-      console.log(opStr);
-      let dsf=getDSFFromOperations(opStr);
-      // console.log(dsf);
-    
-      let countW0=[0,0,0,0];
-      for (var k = 0; k < dsf.w0.length; k++) {
-        countW0[mod(dsf.w0[k], schlafliP)]++;
-      }
-      let countEdge=countW0.slice();//copy countW0
-      for (var k = 0; k < dsf.w1.length; k++) {
-        countEdge[mod(dsf.w1[k], schlafliP)]++;
-      }
-      // let edgeVec=dsf.getEdgeVector();
-      // console.log(countW0);
-      let w0Vec=new Vec2(countW0[0]-countW0[2], countW0[1]-countW0[3]);
-      let edgeVec=new Vec2(countEdge[0]-countEdge[2], countEdge[1]-countEdge[3]);
-      // let mirrorSlope=dsf.getMirrorSlope();
-      // console.log("w0", [w0X, w0Y]);
-    
-      // let mirrorSlope=Math.tan(hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+globalEdgeAngleOffset-w0Vec.ang(), runningLen)/2);;
-      // let mirrorSlope=Math.tan(hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+edgeVec.ang()-w0Vec.ang(), edgeVec.len())/2);
-      // let mirrorSlope=Math.tan(( w0Vec.add(new Vec2(-Math.cos(edgeVec.ang()), 0)).ang() )/2);
-      // console.log(w0Vec.ang());//always 0
-      // console.log();
-      let mirrorSlope=Math.tan(HPI/2-edgeVec.ang());
-      console.log("slope", mirrorSlope);
-    }
+    // let numTestOps=5;
+    // for (var i = 0; i < 1<<numTestOps; i++) {
+    //   let binStr="";
+    //   let opStr="e1";
+    //   for (var j = 0; j < numTestOps; j++) {
+    //     if (1<<j & i) {
+    //       binStr+="1";
+    //       opStr+="e1s1";
+    //     }
+    //     else {
+    //       binStr+="0";
+    //       opStr+="e0s1";
+    //     }
+    //   }
+    //   // console.log(binStr);
+    //   console.log(opStr);
+    //   let dsf=getDSFFromOperations(opStr);
+    //   // console.log(dsf);
+    //
+    //   let countW0=[0,0,0,0];
+    //   for (var k = 0; k < dsf.w0.length; k++) {
+    //     countW0[mod(dsf.w0[k], schlafliP)]++;
+    //   }
+    //   let countEdge=countW0.slice();//copy countW0
+    //   for (var k = 0; k < dsf.w1.length; k++) {
+    //     countEdge[mod(dsf.w1[k], schlafliP)]++;
+    //   }
+    //   // let edgeVec=dsf.getEdgeVector();
+    //   // console.log(countW0);
+    //   let w0Vec=new Vec2(countW0[0]-countW0[2], countW0[1]-countW0[3]);
+    //   let edgeVec=new Vec2(countEdge[0]-countEdge[2], countEdge[1]-countEdge[3]);
+    //   // let mirrorSlope=dsf.getMirrorSlope();
+    //   // console.log("w0", [w0X, w0Y]);
+    //
+    //   // let mirrorSlope=Math.tan(hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+globalEdgeAngleOffset-w0Vec.ang(), runningLen)/2);;
+    //   // let mirrorSlope=Math.tan(hypSASGetAngleAtFirstSide(centerToVertexHyp, PI/schlafliQ+edgeVec.ang()-w0Vec.ang(), edgeVec.len())/2);
+    //   // let mirrorSlope=Math.tan(( w0Vec.add(new Vec2(-Math.cos(edgeVec.ang()), 0)).ang() )/2);
+    //   // console.log(w0Vec.ang());//always 0
+    //   // console.log();
+    //   let mirrorSlope=Math.tan(HPI/2-edgeVec.ang());
+    //   console.log("slope", mirrorSlope);
+    // }
     
     function logOpsInfo(str) {
       let dsf=getDSFFromOperations(str);
