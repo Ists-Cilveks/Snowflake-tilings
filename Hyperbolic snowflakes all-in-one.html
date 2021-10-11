@@ -595,34 +595,6 @@
           // return vec.mult( Math.asin(dist)/HPI /dist);
         }
     
-
-    function wordPeriodLen(w) {
-      let period=1;
-      let periodFound=false;
-      for (; period < w.length+1; period++) {
-        periodFound=true;
-        for (var j = period; j < w.length; j++) {
-          if (w[j-period]!=w[j]) {
-            periodFound=false;
-            break;
-          }
-        }
-        if (periodFound) {
-          break;
-        }
-      }
-      return period;
-    }
-    function wordUV(w) {// TODO: delete after making analogous method of DSF
-      let period=wordPeriodLen(w);
-
-      let uLen=w.length % period;
-      let newW=w.slice();
-      let u=newW.splice(0, uLen);
-      let v=newW.slice(0, period-uLen);
-
-      return {u: u, v: v};
-    }
     function wordRho(r, w) {//rotate the word w by r (add r to each element, modulo the schlafliP)
       let res=[];
       for (var i = 0; i < w.length; i++) {
@@ -630,32 +602,6 @@
         res[i]=w[i]+r;// TODO: is it really this simple to make the tiles work with negative numbers?! this will have to be noted
       }
       return res;
-    }
-    function wordSplitUVAndVU(uv, vu) {//input: uv and vu; output: u and v (// TODO: only hopefully, need to check better)
-      if (uv.length==vu.length) {
-        let d=uv.length;
-        let i=0;
-        for (; i < d; i++) {
-          let done=true;
-          for (var j = i; j < d; j++) {
-            if (uv[j-i]!=vu[j]) {
-              done=false;
-              break;
-            }
-          }
-          if (done) break;
-        }
-        let u=uv.slice(0, d-i);
-        let v=vu.slice(0, i);
-        if (!arraysShallowEqual(u.slice().concat(v), uv) || !arraysShallowEqual(v.slice().concat(u), vu)) {
-          console.warn("wordSplitUVAndVU failed");
-          console.log("i", i, "uv", uv, "vu", vu);
-          console.log("u", u, "v", v);
-        }
-        return {u:u, v:v};
-      }
-      alert("alert005 wordSplitUVAndVU bad input");
-      return {u:[], v:[]};
     }
     function DSF(w0, w1, operatorTrace=[]) {//class for a modification of a double square factorization (restricted with symmetry but generalized with different tilings TODO: it's not really DSF, but some modification/generalization of it, i should rename the class). most of the algorithms here are from ComProp
       // TODO: this is a wall of code
@@ -689,6 +635,18 @@
         }
         return res;
       }
+      this.len=function() {
+        return schlafliP*(this.w0.length+this.w1.length);
+      }
+      this.opTracePush=function(op) {//returns a copy of this.operatorTrace with an extra element (op)
+        let trace=this.operatorTrace.slice();
+        trace.push(op)
+        return trace;
+      }
+      this.isDegenerate=function() {
+        return this.w0.length==0 || this.w1.length==0;
+      }
+      
       this.getEdgeVector=function() {//get the displacement vector of the path of one edge (assuming 0 means rightwards and every segment is of unit length)
         let edgeVector=new Vec2();
         let edgeWord=this.getEdgeWord();
@@ -713,177 +671,52 @@
         }
         return Math.sqrt(maxSqDist);
       }
-      this.len=function() {
-        return 6*(this.w0.length+this.w1.length);
-      }
-      this.opTracePush=function(op) {//returns a copy of this.operatorTrace with an extra element (op)
-        let trace=this.operatorTrace.slice();
-        trace.push(op)
-        return trace;
-      }
       
-      this.getU0V0=function() {// TODO: basically like getu1v1, simplify!
-        // if (this.w1.length!=0) {// TODO:
-        let w1=this.w1.slice();
-        let wNegative1=wordRho(-1, w1);
-        let uv=w1.slice().reverse().concat(wNegative1);
-        let vu=w1.slice().concat(wNegative1.slice().reverse());
-        
-        let fromSplitFunc=wordSplitUVAndVU(uv, vu);
-        
-        if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
-          console.log("");
-          console.warn("alert002 getU0V0");
-          // alert("alert002 getU0V0");
-          
-          let fromFunc=wordUV(this.w0);
-          let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
-          let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
-          // console.log("check in getU0V0", fromFunc.u.slice().concat(fromFunc.v), uvGGG, "and", fromFunc.v.slice().concat(fromFunc.u), vuGGG);
-          if (!arraysShallowEqual(fromFunc.u.slice().concat(fromFunc.v), uvGGG) || !arraysShallowEqual(fromFunc.v.slice().concat(fromFunc.u), vuGGG)) {// TODO:
-            console.log("");
-            console.warn("alert003 getU0V0");
-            // alert("alert002 getU1V1");
-          }
-          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: not a good check
-            return fromFunc;
-          }
-          return fromFunc;
+      
+      this.getU0V0=function() {
+        if (this.isDegenerate()) {
+          alert("alert010 trying to factorize degenerate DSF in getU0V0");
         }
-        // console.log("i", i, "u0v0", uv, "v0u0", vu);
-        return {u:fromSplitFunc.u, v:fromSplitFunc.v};
+        let uLen=this.w0.length % (2*this.w1.length);
+        let uv=this.w1.slice().reverse().concat(wordRho(-1, this.w1));
+        return {u:uv.splice(0, uLen), v:uv};
       }
       this.getU1V1=function() {
-        // if (this.w1.length!=0) {// TODO:
-        let w0=this.w0.slice();
-        let w2=wordRho(1, w0);
-        let uv=w2.slice().reverse().concat(w0);
-        let vu=w2.slice().concat(w0.slice().reverse());
-        
-        let fromSplitFunc=wordSplitUVAndVU(uv, vu);
-        
-        if (!arraysShallowEqual(fromSplitFunc.u.slice().concat(fromSplitFunc.v), uv) || !arraysShallowEqual(fromSplitFunc.v.slice().concat(fromSplitFunc.u), vu)) {// TODO:
-          console.log("");
-          console.warn("alert002 getU1V1");
-          // alert("alert002 getU1V1");
-          
-          let fromFunc=wordUV(this.w1);
-          let uvGGG=wordRho(1, this.w0).reverse().concat(this.w0);
-          let vuGGG=wordRho(1, this.w0).concat(this.w0.slice().reverse());
-          // console.log("check in getU1V1", fromFunc.u.slice().concat(fromFunc.v), uvGGG, "and", fromFunc.v.slice().concat(fromFunc.u), vuGGG);
-          if (!arraysShallowEqual(fromFunc.u.slice().concat(fromFunc.v), uvGGG) || !arraysShallowEqual(fromFunc.v.slice().concat(fromFunc.u), vuGGG)) {// TODO:
-            console.log("");
-            console.warn("alert003 getU1V1");
-            // alert("alert002 getU1V1");
-          }
-          // console.log(fromFunc);
-          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: not a good check
-            return fromFunc;
-          }
-          return fromFunc;
+        if (this.isDegenerate()) {
+          alert("alert010 trying to factorize degenerate DSF in getU1V1");
         }
-        // console.log("i", i, "u1v1", uv, "v1u1", vu);
-        return {u:fromSplitFunc.u, v:fromSplitFunc.v};
+        let uLen=this.w1.length % (2*this.w0.length);
+        let uv=wordRho(1, this.w0).reverse().concat(this.w0);
+        return {u:uv.splice(0, uLen), v:uv};
       }
       this.getU0ConcatV0=function() {
-        if (this.w1.length!=0) {
-          return this.w1.slice().reverse().concat(wordRho(-1, this.w1));
+        if (this.w1.length==0) {
+          alert("alert010 trying to factorize degenerate DSF in getU0ConcatV0");
         }
-        else {
-          let fromFunc=wordUV(this.w0);
-          if (fromFunc.u.length>0 && fromFunc.v.length>0) {
-            return fromFunc.u.concat(fromFunc.v);
-          }
-          else {
-            alert("alert005 kinda bad but mainly bad input");
-            console.log("alert005 kinda bad but mainly bad input");
-            return [];
-          }
-        }
-        
-        // let fromFunc=wordUV(this.w0);
-        // // console.log(fromFunc);
-        // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
-        //   return fromFunc.u.concat(fromFunc.v);
-        // }
-        // else if (this.w1.length!=0) {
-        //   return this.w1.slice().reverse().concat(wordRho(-1, this.w1));
-        // }
-        // // else {// TODO: i think this is only in the case of a hexagon
-        // //   console.log("vvvv");
-        // //   return wordRho(1, this.w1).concat(this.w1);
-        // // }
-        // console.log("bad");// TODO: temporary
-        // return fromFunc;// TODO: temporary
+        let uLen=this.w0.length % (2*this.w1.length);
+        return this.w1.slice().reverse().concat(wordRho(-1, this.w1));
       }
       this.getU1ConcatV1=function() {
-        if (this.w0.length!=0) {
-          return wordRho(1, this.w0).reverse().concat(this.w0);
+        if (this.w0.length==0) {
+          alert("alert010 trying to factorize degenerate DSF in getU1ConcatV1");
         }
-        else {
-          let fromFunc=wordUV(this.w1);
-          if (fromFunc.u.length>0 && fromFunc.v.length>0) {// TODO: ????? is this a good check? i don't think so
-            return fromFunc.u.concat(fromFunc.v);
-          }
-          else {
-            alert("alert005 kinda bad but mainly bad input");
-            console.log("alert005 kinda bad but mainly bad input");
-            return [];
-          }
-        }
-
-        // let fromFunc=wordUV(this.w1);
-        // // console.log(fromFunc);
-        // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
-        //   return fromFunc.u.concat(fromFunc.v);
-        // }
-        // else if (this.w0.length!=0) {
-        //   return wordRho(1, this.w0).reverse().concat(this.w0);
-        // }
-        // // else {// TODO: i think this is only in the case of a hexagon
-        // //   console.log("vvvv");
-        // //   return this.w0.slice().concat(wordRho(1, this.w0));
-        // // }
-        // console.log("bad");// TODO: temporary
-        // return fromFunc;// TODO: temporary
-        //
-        // // let fromFunc=wordUV(this.w1);
-        // // console.log(fromFunc);
-        // // if (fromFunc.u.length>0 && fromFunc.v.length>0) {
-        // //   console.log("|u1|, |v1| > 0");
-        // //   return fromFunc.u.concat(fromFunc.v);
-        // // }
-        // // else {
-        // //   console.log("|u1| or |v1| == 0");
-        // //   if (this.w0.length!=0) {
-        // //     console.log("|w0| > 0");
-        // //     return wordRho(1, this.w0).reverse().concat(this.w0);
-        // //   }
-        // //   else {
-        // //     console.log("|w0| == 0");
-        // //   }
-        // // }
-        // // // else {// TODO: i think this is only in the case of a hexagon
-        // // //   console.log("vvvv");
-        // // //   return this.w0.slice().concat(wordRho(1, this.w0));
-        // // // }
-        // // console.log("bad");// TODO: temporary
-        // // return fromFunc;// TODO: temporary
+        let uLen=this.w1.length % (2*this.w0.length);
+        return wordRho(1, this.w0).reverse().concat(this.w0);
       }
       
       this.trim0=function() {
-        let newW0=this.w0.slice(0, -wordPeriodLen(this.w0));// TODO: will this always work?
+        let newW0=this.w0.slice(0, -2*this.w1.length);
         return new DSF(newW0, this.w1, this.opTracePush("trim0"));
       }
       this.trim1=function() {
-        let newW1=this.w1.slice(0, -wordPeriodLen(this.w1));
+        let newW1=this.w1.slice(0, -2*this.w0.length);
         return new DSF(this.w0, newW1, this.opTracePush("trim1"));
       }
       this.trimIfPossible=function() {
-        if (this.w0.length>2*this.w1.length && this.w1.length>0) {
+        if (this.w0.length>=2*this.w1.length && this.w1.length>0) {
           return this.trim0();
         }
-        else if (this.w1.length>2*this.w0.length && this.w0.length>0) {
+        else if (this.w1.length>=2*this.w0.length && this.w0.length>0) {
           return this.trim1();
         }
         else {
@@ -912,11 +745,6 @@
           return new DSF([], [], this.opTracePush("extend0"));
         }
         else {
-          // let onePeriod=this.w0.slice(0, wordPeriodLen(this.w0));
-          // return new DSF(onePeriod.concat(this.w0), this.w1);
-          // let u0v0=this.getU0V0();
-          // return new DSF(this.w0.concat(u0v0.v).concat(u0v0.u), this.w1);
-          // console.log("u0*v0", this.getU0ConcatV0());
           return new DSF(this.getU0ConcatV0().concat(this.w0), this.w1, this.opTracePush("extend0"));
         }
       }
@@ -926,19 +754,25 @@
           return new DSF([], [], this.opTracePush("extend1"));
         }
         else {
-          // let onePeriod=this.w1.slice(0, wordPeriodLen(this.w1));
-          // return new DSF(this.w0, onePeriod.concat(this.w1));
           return new DSF(this.w0, this.getU1ConcatV1().concat(this.w1), this.opTracePush("extend1"));
         }
       }
       this.dual=function() {//the chiral dual of this DSF, essentally mirroring across one of the tilings' mirrors
-        // return new DSF(this.w1.slice().reverse(), this.w0.slice().reverse(), this.opTracePush("dual"));//doesn't change appearance, might be useful
         return new DSF(this.w1, wordRho(1, this.w0), this.opTracePush("dual"));
       }
-      this.reduceHoweverPossible=function() {// TODO:
-        // if (w0) {
-        //
-        // }
+      this.reduce=function() {
+        if (this.w0.length<2*this.w1.length && this.w1.length<2*this.w0.length) {//swap0 or swap1 will reduce the DSF
+          if (this.w0.length<this.w1.length) {
+            return this.swap0();
+          }
+          else if (this.w1.length<this.w0.length) {
+            return this.swap1();
+          }
+        }
+        else {
+          return this.trimIfPossible();
+        }
+        return this;
       }
       
       this.getMirrorSlope=function() {
@@ -3294,6 +3128,8 @@
             return "trimIfPossible";
           case "d":
             return "dual";
+          case "r":
+            return "reduce";
         }
       }
     }
