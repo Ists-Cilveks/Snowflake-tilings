@@ -1245,6 +1245,95 @@
       this.useTilingTransforms=false;
       this.useDistFromCenter=false;
     }
+    
+    
+    function drawWordWithSettings(segLen, edgeWord=[0, 1, 0], ctx=context) {
+      let curPos=new Vec2();
+      
+      ctx.strokeStyle="white";
+      ctx.lineWidth=1;
+      
+      ctx.beginPath();
+      
+      // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
+      // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).screen();
+      // let curScreenPos=transf.applyTo(curPos).mult(globalScaling).screen();
+      // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen();
+      let curScreenPos=new Vec2().screen();
+      // console.log(curScreenPos);
+      ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
+    
+      let innerTurnAngBonus=0;
+      let runningAng=PI;
+      let runningLen=0;
+      // let lastPosTransformed=transf.applyTo(startPos);
+      // let lastPosTransformed=transf.applyTo(startPos);
+      let lastPosTransformed=new Vec2(0.0001, 0.0001);// TODO: ugh
+      // console.log(lastPosTransformed);
+      let curPosTransformed=new Vec2();
+    
+      for (var i = 0; i < edgeWord.length; i++) {
+        let innerTurnAng=0;
+        if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
+          innerTurnAng=PI-TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments
+          // console.log("edgeWord[i]-edgeWord[i-1]", edgeWord[i]-edgeWord[i-1]);
+        }
+        let innerTurnAngWithBonus=innerTurnAng-innerTurnAngBonus;
+  
+        // do some trigonometry (using https://en.wikipedia.org/wiki/Hyperbolic_triangle) to find unknowns in the triangle {old displacement Vector, current path segment, new displacement vector} with angles {new innerTurnAngBonus, runningAngChange, old innerTurnAngWithBonus}
+  
+        // TODO: make these 3 into one function? (maybe not needed, but there's a lot of copying with slight modifications)
+        innerTurnAngBonus=hypSASGetAngleAtFirstSide(segLen, innerTurnAngWithBonus, runningLen);
+        let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
+        let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
+  
+        // console.log("innerTurnAng", innerTurnAng);
+        // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
+        // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
+  
+        runningAng+=runningAngChange;
+        runningLen=newRunningLen;
+        // console.log("Result:", "runningLen", runningLen, "runningAng", runningAng);
+        curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
+        // console.log(curPos);
+  
+        // let scaledCurPos=curPos.mult(settings.useDistFromCenter ? 1/maxDistFromCenter : 1/edgeVector.len());
+        // let curScreenPos=transf.applyTo(scaledCurPos).mult(settings.DSFRelativeRadius).add(settings.pos).screen();//in tessellation // TODO: currently used one is modified from this; do i need the full version for hyperbolic drawing?
+  
+        // curScreenPos=transf.applyTo(scaledCurPos).add(settings.pos).screen();
+        curPosTransformed=curPos;
+        // curPosTransformed=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).add(0.001, 0.001);
+  
+        // ctx.lineTo(curScreenPos.x, curScreenPos.y);
+  
+        // console.log(ttr, lastPosTransformed, curPosTransformed);
+        // console.log(ttr, lastPosTransformed.screen(), curPosTransformed.screen());
+        pathPoincareEdge(lastPosTransformed, curPosTransformed, ctx);
+  
+        lastPosTransformed=curPosTransformed;
+      }
+    
+      // pathPoincareEdge(transf.applyTo(curPos).mult(globalScaling), curPosTransformed);
+      // pathPoincareEdge(transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())), curPosTransformed);
+      // console.log(curPosTransformed.screen(), transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen());
+      // pathPoincareEdge(curPosTransformed, new Vec2());
+        
+      // console.log(curScreenPos);
+      // ctx.fillStyle="#ff09";
+      // ctx.fillRect(curScreenPos.x-3, curScreenPos.y-3, 6, 6);
+      // ctx.fillStyle="#9999";
+      // let endScreenPos=curPos.screen();
+      // ctx.fillRect(endScreenPos.x-3, endScreenPos.y-3, 6, 6);
+      // ctx.fillStyle="#f119";
+      // let edgeEndScreenPos=Vec2FromAngleAndHypLength(globalEdgeAngleOffset, edgeLengthHyp).screen();
+      // ctx.fillRect(edgeEndScreenPos.x-3, edgeEndScreenPos.y-3, 6, 6);
+      // ctx.closePath();
+      // ctx.fillStyle="darkgreen";
+      // ctx.fill("evenodd");
+      
+      ctx.stroke();
+    }
+    
 
     // var curDSF=new DSF([0,1,0,1], [2,1,2,1,0,1,0]);
     // var curDSF=new DSF([0], [1,0,1,0]);
@@ -1971,6 +2060,7 @@
       ctx.fill();
     }
 
+    //for drawHypGrid() (old)
     function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       // if (true) {//arc edges
         // if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
@@ -2129,12 +2219,17 @@
       // console.trace("name:", name);
       // if (!initialDrawingReady) return;
       globalScaling=1;
-      if (isEuclidean && (name=="hypTest" || name=="regular using schlafli" || name=="anisohedral")) {
+      
+      if (name=="none" && schlafliP==6 && schlafliQ==3) {//euclidean hexagons have a special case
+        globalScaling=0.6;
+      }
+      else if (isEuclidean && (name=="hypTest" || name=="regular using schlafli" || name=="anisohedral")) {
         globalScaling=0.5;
       }
       else if (curvature==1) {
         globalScaling=0.3;
       }
+      
       switch (name) {
         case "none":
           // tilingTransforms=[new Affine2()];
@@ -3300,8 +3395,9 @@
     updateSchlafliSymbol();
     generateHyperbolicGraph();
     
-    setWordModeEnabled(true);
-    // setWordModeEnabled(false);
+    // setWordModeEnabled(true);
+    setWordModeEnabled(false);
+    paused=true;
     initialDrawingReady=true;
     
     resize();
