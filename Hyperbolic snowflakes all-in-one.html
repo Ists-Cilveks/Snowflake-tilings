@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <!-- TODO: more detailed notes -->
 <!--
-  This code generates double square tiles, tilable snowflakes and allows drawing of symmetrical tilable shapes
+  This app generates (some) double square tiles, tilable snowflakes and allows drawing of symmetrical tilable shapes
 
   ComProp is short for the article "Combinatorial properties of double square tiles"
 
@@ -75,7 +75,7 @@
       left: 10px;
       top: 10px;
       display: inline-block;
-      background-color: #2228;
+      background-color: #222a;
       /* outline: 2px solid black; */
     }
 
@@ -88,6 +88,7 @@
       /* padding: 6px 0px; */
       z-index: 1;
       vertical-align: top;
+      padding: 6px;
     }
 
     /* .dropdown-content div {/* Links inside the dropdown */
@@ -241,18 +242,32 @@
 
   <div class="dropdown">
     <button id="drop-btn" class="drop-btn"></button>
-
-
-
-    <div class="dropdown-content" id="color-select-dropdown"></div>
+    
+    <div class="dropdown-content">
+    
+      <div id="color-select-dropdown">
+        
+      </div>
+      <div>
+        <input id="background-color" type="color" onchange="setBackgroundColor()"> background<br>
+        <input id="edge-color" type="color" onchange="setEdgeColor()"> edges<br>
+        <input id="draw-color" type="color" onchange="setDrawColor()"> pen<br>
+        <input id="central-flake-color" type="color" onchange="setCentralFlakeColor()"> center<br>
+        <input id="surrounding-flake-color" type="color" onchange="setSurroundingFlakeColor()"> surrounding<br>
+        <input id="draw-size" type="number" onchange="setDrawSize()" min="0" max="1000"> pen size<br>
+        <input id="edge-width" type="number" onchange="setEdgeWidth()" min="0" max="1000"> edge size<br>
+        <input id="num-flakes" type="number" onchange="setNumFlakes()" min="1" max="1000" step="1"> number of shapes<br>
+      </div>
+    
+    </div>
     <!-- <div class="dropdown-content" style="width:40vw"> -->
     <div class="dropdown-content">
-      <div id="draw-size-container" style="margin-bottom: 1.8vh;"><!-- pen size -->
-        <span class="simple-button draw-size-option" onclick="drawSize=1">1px</span>
-        <span class="simple-button draw-size-option" onclick="drawSize=3">3px</span>
-        <span class="simple-button draw-size-option" onclick="drawSize=10">10px</span>
-        <span class="simple-button draw-size-option" onclick="drawSize=30">30px</span>
-      </div>
+      <!-- <div id="draw-size-container" style="margin-bottom: 1.8vh;">
+        <span class="simple-button draw-size-option" onclick="drawSize=0.001">1</span>
+        <span class="simple-button draw-size-option" onclick="drawSize=0.003">3</span>
+        <span class="simple-button draw-size-option" onclick="drawSize=0.01">10</span>
+        <span class="simple-button draw-size-option" onclick="drawSize=0.03">30</span>
+      </div> -->
       <span id="word-mode-button" style="display:inline-block" onclick="invertWordModeEnabled()"></span>
       <hr>
       <span id="use-mirrors-button" style="display:inline-block" onclick="invertUseMirrors()"></span>
@@ -267,17 +282,14 @@
           <div id="mirror-angle-setting-container" style="padding-left: 0; padding-bottom:5px; padding-top: 2%"></div><!-- which mirror angle input setting to use (slope, deg, rad...) -->
           <div id="mirror-angle-value-container" style="padding-left: 0"></div>
         </div>
-        <button style="font-size:16px" id="auto-generate-valid-snowflake" onclick="autoGenerateVertexesGeometrically()">Auto-generate geometrically</button>
+        <button style="font-size:16px; display:none;" id="auto-generate-valid-snowflake" onclick="autoGenerateVertexesGeometrically()">Auto-generate geometrically</button>
       </div>
-      <form style="margin-bottom: 3%" id="tiling-type-input" onchange="updateTilingType()"></form>
+      <form style="margin-bottom:3%; display:none;" id="tiling-type-input" onchange="updateTilingType()"></form>
 
       <hr>
 
-      <div class="dropdown-content uiContainer">
-        <div class="uiSubContainer">
-          <span id="schlafli-input-container"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30">}</b></span> grid<br>
-          <button onclick="updateSchlafliSymbol()"><b>Go</b></button>
-        </div>
+      <div class="dropdown-content uiSubContainer">
+        <span id="schlafli-input-container"><b>{<input class="gameSettingsNumbers" type="number" id="schlafliP" name="schlafliP" min="3" max="30" onchange="updateSchlafliSymbol()">; <input class="gameSettingsNumbers" type="number" id="schlafliQ" name="schlafliQ" min="3" max="30" onchange="updateSchlafliSymbol()">}</b></span> grid<br>
       </div>
     </div>
   </div>
@@ -314,9 +326,6 @@
       }
       return x;
     }
-    function closenessPenalty(x, coefficient) { //what number to divide x by so it doesn't reach 1
-      return 1-coefficient-coefficient/(x-1);
-    }
     function round(v, p=2) {
       return Math.round(v*10**p+Number.EPSILON)/10**p;
     }
@@ -352,21 +361,22 @@
     function mod(v, m) {//%, but works properly with negative numbers
       return (v%m+m)%m;
     }
+    function setPropIfDef(obj, prop, val) {//if the object obj is defined, set its property prop to val
+      if (obj) {
+        obj[prop]=val;
+      }
+    }
 
     /* TODO:
-      a bunch of attribution is still needed
+      attribution may still be needed
       replace a bunch of 0.001 epsilons
-      word ui
       just drawing previews is demanding? (canvas transformations might help???)
       detailed drawing mode (zoom in on one fundamental triangle)
       better, more efficient undo (could fairly easily be much more efficient one level deep)
       better UI
-      find all TO-DOs
       better resizing
       erase pointless commented code
       change page title?
-      refactor all the things
-      replace var with let?
     */
 
 
@@ -424,24 +434,11 @@
       var framesSinceResize=0;
       var resizeRequested=false;//has the window been resized while the canvas hasn't yet?
       const mouseSlowingFactor=1.5;//0-infinity, sets how much mouse movement is smoothed out, see equation in mousemove event
-      var drawSize=1;// TODO: should be relative to some unit, otherwise scaling messes up filled regions
-      var globalLineWidth=3;
+      var drawSize=0.003;
+      var globalEdgeWidth=0.003;
+      var numFlakes=40;
       
-      var numFlakesToAddNeighbors=30;
-      
-      // var schlafliSymbol=[6, 3];
-      // var schlafliSymbol=[3, 6];
-      // var schlafliSymbol=[4, 6];
-      // var schlafliSymbol=[6, 4];
-      // var schlafliSymbol=[5, 4];
-      // var schlafliSymbol=[4, 4];
-      // var schlafliSymbol=[4, 7];
-      // var schlafliSymbol=[7, 3];
-      // var schlafliSymbol=[10, 3];
-      // var schlafliSymbol=[4, 3];
-      var schlafliSymbol=[5, 3];
-      // var schlafliSymbol=[3, 4];
-      // var schlafliSymbol=[7,3];
+      var schlafliSymbol=[6, 3];
       
       var schlafliP=schlafliSymbol[0];
       var schlafliQ=schlafliSymbol[1];
@@ -484,7 +481,7 @@
             mirrorAngleContainer.style.opacity=0.5;
           }
           setInTileTransforms();
-          clearAll();
+          // clearAll();
           updateAutoGenerateButton();
         }
       }
@@ -493,7 +490,7 @@
       }
       setUseMirrors(true);
       
-      var wordModeEnabled;//the tile is either mirror symmetrical (true) or chiral (false)
+      var wordModeEnabled;//either the tile is described using words (true) or ony the user can draw (false)
       function setWordModeEnabled(u) {
         if (wordModeEnabled!==u) {
           wordModeEnabled=u;
@@ -567,6 +564,43 @@
       function updateAutoGenerateButton() {//update whether the tiling auto-generation button can be clicked or is greyed out
         let clickability=canAutoGenerateGeometrically();
         autoGenerateButton.disabled=!clickability;
+      }
+      
+      function setBackgroundColor() {
+        BGColor=ColorFromHex(document.getElementById("background-color").value);
+        document.body.style.backgroundColor=BGColor.rgb();
+      }
+      function setEdgeColor() {
+        edgeColor=document.getElementById("edge-color").value;
+        redrawAll();
+      }
+      function setCentralFlakeColor() {
+        centralFlakeColor=document.getElementById("central-flake-color").value;
+        redrawAll();
+      }
+      function setSurroundingFlakeColor() {
+        surroundingFlakeColor=document.getElementById("surrounding-flake-color").value;
+        redrawAll();
+      }
+      function setDrawColor() {
+        drawColor=drawColorWithErase=ColorFromHex(document.getElementById("draw-color").value);
+      }
+      function setDrawSize() {
+        drawSize=document.getElementById("draw-size").value/1000;
+      }
+      function setEdgeWidth() {
+        globalEdgeWidth=document.getElementById("edge-width").value/1000;
+        redrawAll();
+      }
+      function setNumFlakes() {
+        numFlakes=document.getElementById("num-flakes").value;
+        let generateNewGrid = numFlakes>P.length;
+        // console.log(numFlakes, P.length, generateNewGrid);
+        if (generateNewGrid) {
+          generateHyperbolicGraph();
+        }
+        setTilingTransforms();
+        redrawAll();
       }
       
       var P=[];//Polygons array
@@ -812,14 +846,14 @@
         // console.log("updateMirrorM");
         updateMirrorAngle(this.getMirrorSlope());
       }
-      this.updateSegmentLength=function() {
+      this.updateSegmentLength=function() {// TODO: gets called redundantly on load (with undefined curvature and edgeLengthHyp)
         // console.trace("updateSegmentLength");
         let curPos=new Vec2();
         
         // let segLenLowerBound=0.001;     // TODO: arbitrary
         // let segLenUpperBound=3;
         let segLenLowerBound=0;
-        let segLenUpperBound=20;
+        let segLenUpperBound= curvature==1 ? TAU/3 : 20;
         let runningAng;
         let segLen;
         
@@ -860,6 +894,8 @@
             // curPos=Vec2FromAngleAndHypLength(runningAng, runningLen);
           }
           
+          // console.log(runningLen);
+          
           if (runningLen>edgeLengthHyp) {
             segLenUpperBound=segLen;
           }
@@ -868,13 +904,15 @@
           }
           // console.log(p2.y, p3.y);
         }
+        // console.log("%cFinal answer: "+segLen, "color:lime; font-size:150%");
+        // console.log("%capproximating length "+edgeLengthHyp, "color:lime; font-size:120%");
         globalEdgeAngleOffset=runningAng;//update globalEdgeAngleOffset // TODO: done here out of convenience, maybe should be made separate
         this.segmentLength=segLen;
       }
       this.drawWithSettings=function(settings) {
         // console.trace("drawWithSettings", initialDrawingReady);
         let ctx=settings.context;
-        ctx.lineWidth=globalLineWidth;
+        ctx.lineWidth=globalEdgeWidth*canvas.height;
         ctx.strokeStyle=settings.strokeStyle;
         ctx.fillStyle=settings.fillStyle;
         ctx.lineJoin="round";
@@ -888,6 +926,7 @@
         
         // let segLen=1/maxDistFromCenter;
         const segLen=this.segmentLength;
+        // const segLen=0.01;
         // const segLen=(-colorChangeSteps/500%1+1)%1 *0.1;
         // const segLen=(-colorChangeSteps/50%1+1)%1 *0.2;
         // const segLen=(-colorChangeSteps/50%1+1)%1 *0.05;
@@ -900,10 +939,12 @@
         
         // const startPos=new Vec2();
         
-        // const startingAng=0;
+        // const startingAng=-PI;
         // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform();
-        const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;
-        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);// TODO: rename
+        const startingAng=PI-globalEdgeAngleOffset-PI/schlafliQ;//good
+        let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, centerToVertexHyp);//good // TODO: rename
+        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, -0.3);
+        // let hypTranslationThatTakesTheCenterOfATileToItsVertex=new HypTransform(0, 0);//debug
         // const startingLen=0.0001;
         // const startingLen=0.3;
         // const startingLen=centerToVertexEuc;
@@ -931,9 +972,11 @@
         // console.log(edgeWord);
         
         for (var ttr = 0; ttr < tilingTransformNumber; ttr++) {// TODO: fewer things can be in this loop (like the edgeWord definition) // TODO: maybe first calculate all the points once and then loop over the transformations {and the points}
+        // for (var ttr = 0; ttr < 1; ttr++) {
             let transf=tilingTransforms[ttr];
             //define the tiles' contact point as the beginning of the boundary
             let curPos=startPos;
+            // console.log(curPos);
           
             ctx.beginPath();
             // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(startPos)).add(settings.pos).screen();
@@ -941,7 +984,6 @@
             // let curScreenPos=transf.applyTo(curPos).mult(globalScaling).screen();
             // let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen();
             let curScreenPos=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).mult(globalScaling).screen();
-            // console.log(curScreenPos);
             ctx.moveTo(curScreenPos.x, curScreenPos.y);//beginning to draw the path, move to the starting point
             
             // let innerTurnAngBonus=PI+0.00001;
@@ -958,6 +1000,7 @@
         
             // for (var j = 0; j < schlafliP; j++) {
               for (var i = 0; i < edgeWord.length-1; i++) {
+              // for (var i = 0; i < 1; i++) {
                 let innerTurnAng=0;
                 if (i!=0) {//certain things (like getting the previous segment) will only work if this is not first segment
                   innerTurnAng=TAU * (edgeWord[i]-edgeWord[i-1])/schlafliQ;//the angle between the current and previous segments // TODO: i don't fully understand why this works
@@ -972,7 +1015,9 @@
                 let newRunningLen=hypSASGetThirdEdge(runningLen, innerTurnAngWithBonus, segLen);
                 let runningAngChange=hypSASGetAngleAtFirstSide(runningLen, innerTurnAngWithBonus, segLen); //how much needs to be added to the running angle. it is equal to the angle between the new and old running-displacement-vectors
                 
-                // console.log("Known:", "runningLen", runningLen, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
+                // console.log("%cKnown:", "color: lime; font-size: 150%");
+                // console.log("i", i, "runningLen", runningLen, "runningAng", runningAng, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
+                // // console.log("Known:", "runningLen", runningLen, "runningAng", runningAng, "innerTurnAngWithBonus", innerTurnAngWithBonus, "segLen", segLen);
                 // console.log("Just calculated:", "innerTurnAngBonus", innerTurnAngBonus, "newRunningLen", newRunningLen, "runningAngChange", runningAngChange);
                 
                 runningAng+=runningAngChange;
@@ -988,6 +1033,9 @@
                 curPosTransformed=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos));
                 // curPosTransformed=transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(curPos)).add(0.001, 0.001);
                 
+                // console.log(curPosTransformed);
+                
+                
                 // ctx.lineTo(curScreenPos.x, curScreenPos.y);
                 
                 // console.log(ttr, lastPosTransformed, curPosTransformed);
@@ -1001,7 +1049,7 @@
             // pathPoincareEdge(transf.applyTo(curPos).mult(globalScaling), curPosTransformed);
             // pathPoincareEdge(transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())), curPosTransformed);
             // console.log(curPosTransformed.screen(), transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())).screen());
-            pathPoincareEdge(curPosTransformed, transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())));
+            pathPoincareEdge(curPosTransformed, transf.applyTo(hypTranslationThatTakesTheCenterOfATileToItsVertex.applyTo(new Vec2())));//good
             
             // console.log(curScreenPos);
             // ctx.fillStyle="#ff09";
@@ -1016,10 +1064,18 @@
             // ctx.closePath();
             // ctx.fillStyle="darkgreen";
             
-            ctx.fillStyle= ttr==0 ? tilingCentralFillColor : tilingSurroundingFillColor;
-            ctx.fill("evenodd");
+            ctx.fillStyle= ttr==0 ? centralFlakeColor : surroundingFlakeColor;
+            
+            // console.log(ctx.fillStyle);
+            if (!(curvature==1 && ttr==numPolys-1)) {
+              ctx.fill();
+            }
+            // ctx.fill("evenodd");
+            // ctx.fillRect(100, 200, 300, 400);
             ctx.stroke();
           }
+          // ctx.fillStyle="#f0f";
+          // ctx.fillRect(canvas.width/2-3, canvas.height/2-3, 6, 6);
       }
       this.drawToWholeScreen=function() {
         let settings=new DSFDrawingSettings();
@@ -1082,7 +1138,7 @@
       this.pos=new Vec2();
       this.DSFRelativeRadius=DSFGridScaling;// TODO: rename // TODO: different default?
       // this.strokeStyle="#fff";
-      this.strokeStyle=defaultDrawColor.rgb();
+      this.strokeStyle=edgeColor;
       this.fillStyle="#0000";
       this.useTilingTransforms=false;
       this.useDistFromCenter=false;
@@ -1092,8 +1148,8 @@
     function drawWordWithSettings(segLen, edgeWord=[0], ctx=context) {
       let curPos=new Vec2();
       
-      ctx.strokeStyle=defaultDrawColor.rgb();
-      ctx.lineWidth=globalLineWidth;
+      ctx.strokeStyle=edgeColor;
+      ctx.lineWidth=globalEdgeWidth*canvas.height;
       ctx.lineJoin="round";
       
       ctx.beginPath();
@@ -1341,6 +1397,9 @@
         this.rgb=function() {
           return "rgb("+this.r+","+this.g+","+this.b+")";
         }
+        this.hex=function() {
+          return "#" + ((1 << 24) + (this.r << 16) + (this.g << 8) + this.b).toString(16).slice(1); //from https://stackoverflow.com/a/5624139/10630826 on 26.12.2021
+        }
         this.square=function() {
           return new Color(this.r**2, this.g**2, this.b**2, this.a);
         }
@@ -1354,7 +1413,7 @@
         }
       }
       function ColorFromHSL(h=5/6, s=1, l=0.5, a=1) {
-        // TODO: this is dumb (alsoneed a reference)
+        // TODO: need a reference
         h=(h%1+1)%1;
         let c = (1 - Math.abs(2 * l - 1)) * s,
             x = c * (1 - Math.abs((h*6) % 2 - 1)),
@@ -1382,6 +1441,20 @@
         b = Math.round((b + m) * 255);
 
         return new Color(r, g, b, a);
+      }
+      function ColorFromHex(hex) { //from https://stackoverflow.com/a/5624139/10630826 on 26.12.2021
+        // // Expand shorthand form (e.g. "03F") to full form (e.g. "0033FF")
+        // var shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+        // hex = hex.replace(shorthandRegex, function(m, r, g, b) {
+        //   return r + r + g + g + b + b;
+        // });
+
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? new Color(
+          parseInt(result[1], 16),
+          parseInt(result[2], 16),
+          parseInt(result[3], 16)
+        ) : null;
       }
       function Gradient(v) {
         this.colors=[];
@@ -1473,13 +1546,13 @@
       //   }
       // }
 
-      var drawColors=[];
-      for (const col in colors) {//initialize drawColors with all predefined colors
-        drawColors.push(colors[col]);
-      }
-      for (var i = 0; i < drawColors.length; i++) {//add color select elements
-        document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectDrawColor(drawColors["+i+"])'> </div>";
-      }
+      // var drawColors=[];
+      // for (const col in colors) {//initialize drawColors with all predefined colors
+      //   drawColors.push(colors[col]);
+      // }
+      // for (var i = 0; i < drawColors.length; i++) {//add color select elements
+      //   document.getElementById("color-select-dropdown").innerHTML+="<div class='color-select-option' style='background-color: "+drawColors[i].rgb()+"' onclick='selectDrawColor(drawColors["+i+"])'> </div>";
+      // }
       
       var boundaryCircleColor="hsla(0, 0%, 100%, 0.7)";
       var hypPolyEdgeColor="rgb(110, 110, 110)";
@@ -1488,23 +1561,34 @@
       // var BGColor=new Color(0, 0, 0);
       // var defaultDrawColor=new Color(255, 255, 255);
       var BGColor=new Color(255, 255, 255);
-      var defaultDrawColor=new Color(0, 0, 0);
+      let defaultDrawColor=new Color(0, 0, 0);
+      var edgeColor=defaultDrawColor;
       
       // var BGColor=new Color(0, 100, 200);
       // var defaultDrawColor=new Color(51, 189, 176);
       // var defaultDrawColor=new Color(5, 39, 106);
       
-      document.body.style.backgroundColor=BGColor.rgb();
       var drawColor=defaultDrawColor.copy();
       var drawColorWithErase=drawColor;//temporary color (same as drawColor except when erasing, then it's the background color)
       
-      var tilingFillColor="#59f";
-      // var tilingFillColor="#36d";
-      var tilingCentralFillColor=tilingFillColor; var tilingSurroundingFillColor=tilingFillColor;//default
-      // tilingCentralFillColor="#15f";
-      // tilingSurroundingFillColor="#15f";
+      var tilingFillColor="#5599ff";
+      // var tilingFillColor="#3366dd";
+      var centralFlakeColor=tilingFillColor; var surroundingFlakeColor=tilingFillColor;//default
+      centralFlakeColor="#1155ff";
+      // surroundingFlakeColor="#1155ff";
       
-      var centralFlakeLighter=false;
+      document.body.style.backgroundColor=BGColor.rgb();
+      document.getElementById("background-color").value=BGColor.hex();
+      document.getElementById("edge-color").value=defaultDrawColor.hex();
+      document.getElementById("central-flake-color").value=centralFlakeColor;
+      document.getElementById("surrounding-flake-color").value=surroundingFlakeColor;
+      document.getElementById("draw-color").value=defaultDrawColor.hex();
+      
+      document.getElementById("draw-size").value=drawSize*1000;
+      document.getElementById("edge-width").value=globalEdgeWidth*1000;
+      document.getElementById("num-flakes").value=numFlakes;
+      
+      var centralFlakeLighter=false;//when drawing with the mouse, are the points on the surrounding flakes darkened?
     
     function Vec2(x=0, y=0) {
       this.x=x;
@@ -1711,12 +1795,29 @@
         return res;
       }
       else {
-        //hyperbolic four-parts formula, adapted from https://en.wikipedia.org/wiki/Spherical_trigonometry#Cotangent_four-part_formulae (CT6), retrieved 16.07.2021
-        // let res=Math.acot((Math.sin(a)*Math.cot(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));//direct copy
-        let res=1/Math.atan((Math.sin(a)/Math.tan(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));
-        // if (res<0 ^ mod(C, TAU)>PI) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
+        // //hyperbolic four-parts formula, adapted from https://en.wikipedia.org/wiki/Spherical_trigonometry#Cotangent_four-part_formulae (CT6), retrieved 16.07.2021
+        // // let res=Math.acot((Math.sin(a)*Math.cot(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));//direct copy
+        // let res=1/Math.atan((Math.sin(a)/Math.tan(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));
+        // // if (res<0 ^ mod(C, TAU)>PI) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
+        // //   res+=PI;
+        // // }
+        // return res;
+        
+        // return Math.atan(Math.sin(C)/(Math.sin(a)/Math.tan(b)-Math.cos(C)*Math.cos(a)));
+        
+        // //hyperbolic four-parts formula, adapted from https://en.wikipedia.org/wiki/Spherical_trigonometry#Cotangent_four-part_formulae (CT6), retrieved 16.07.2021
+        // // let res=Math.acot((Math.sin(a)*Math.cot(b)-Math.cos(C)*Math.cos(a))/Math.sin(C));//direct copy
+        let divisor=Math.sin(a)/Math.tan(b)-Math.cos(C)*Math.cos(a)
+        let res=Math.atan(Math.sin(C)/divisor);
+        // if (res<0 ^ mod(C, TAU)>PI) {
         //   res+=PI;
         // }
+        // if (mod(C, TAU)<PI) {
+        //   res+=PI;
+        // }
+        if (divisor<0) {// TODO: i got to this solution while messing around on desmos, some kind of proof/explanation would be fitting
+          res+=PI;
+        }
         return res;
       }
     }
@@ -1746,7 +1847,9 @@
       }
       else {
         //formula adapted from https://en.wikipedia.org/wiki/Stereographic_map_projection retrieved 28.07.2021
-        return 2*Math.tan(HPI-rho/2);
+        // return 2*Math.tan((HPI-rho)/2);
+        // return 2*Math.tan((HPI-rho)/2);
+        return Math.tan(rho/2);
       }
     }
     function eucToHypDist(r) {
@@ -1759,7 +1862,8 @@
       }
       else {
         //formula adapted from https://en.wikipedia.org/wiki/Stereographic_map_projection retrieved 28.07.2021
-        return 2*(HPI-Math.atan(r/2));
+        // return HPI-2*Math.atan(r/2);
+        return 2*Math.atan(r);
       }
     }
     
@@ -1767,9 +1871,9 @@
       let p1SqLen=p1.sqLen();
       let p2SqLen=p2.sqLen();
       let useP1Prime=p1SqLen>p2SqLen;//if p2 is closer to the center, use p1 prime (inverted across unit circle) as p3
-      let p3Scaling=1/(useP1Prime ? p1SqLen : p2SqLen);
+      let p3Scaling=-curvature/(useP1Prime ? p1SqLen : p2SqLen);
       let p3=(useP1Prime ? p1 : p2).mult(p3Scaling);
-            
+      
       //algorithm adapted from "Equation of circle when three points on the circle are given" https://www.geeksforgeeks.org/equation-of-circle-when-three-points-on-the-circle-are-given/ (retrieved 26.07.2021)
       
       let x12=p1.x - p2.x;
@@ -1800,7 +1904,7 @@
       
       return new Vec2(g, f);
     }
-
+    
     function Polygon() {// TODO: classes with push, not weird index saving
       this.numNext=0;
       this.next=[];
@@ -1877,29 +1981,7 @@
         context.fill();
       }
     };
-
-    function smootherStep(x) {
-      return x * x * x * (x * (x * 6 - 15) + 10);
-    }
-    function getSmoothWeightedAverage(x, v1=0, v2=1) {//lerp, but with smootherstep
-      return x * x * x * (x * (x * 6 - 15) + 10)*(v2-v1)+v1;
-    }
-    function getWeightedSquareAverage(x, y, v1, v2, v3, v4) {//smooth interpolation
-      return getSmoothWeightedAverage(y, getSmoothWeightedAverage(x, v1, v2), getSmoothWeightedAverage(x, v3, v4));
-    }
-    function getNoise(i, j, seed=0) {//get perlin noise at (i, j)
-      var fi=Math.floor(i);
-      var fj=Math.floor(j);
-      var reli=i-fi;
-      var relj=j-fj;
-      function getCurrentDot(iOff, jOff) {
-        var ang=((fi+iOff)*2+((fj+jOff+seed)*(seed+1))**2)**2;
-        // var ang=((fi+iOff)+(fj+jOff)*2)**2;
-        return Math.cos(ang)*(reli-iOff)+Math.sin(ang)*(relj-jOff);
-      }
-      return getWeightedSquareAverage(reli, relj, getCurrentDot(0, 0), getCurrentDot(1, 0), getCurrentDot(0, 1), getCurrentDot(1, 1))*0.8591+0.5;
-    }
-
+    
     function drawSquare(pos, w=4) {
       pos=pos.screen();
       context.fillRect(pos.x-w/2, pos.y-w/2, w, w);
@@ -1919,12 +2001,12 @@
       ctx.arc(screenPos.x, screenPos.y, r/2+0.5, 0, TAU);
       ctx.fill();
     }
-
+    
     //for drawHypGrid() (old)
     function pathPoincareEdge(v1, v2, ctx=context) {//add one edge's (from v1 to v2) arc-shaped path to context
       if (true) {//arc edges
       // if (false) {//arc edges
-        if (!isEuclidean) {// TODO: getGeodesicCircleCenter function
+        if (!isEuclidean) {
           var circleCenter=getGeodesicCircleCenter(v1, v2);
           var newR=(circleCenter.sub(v1)).len();
         }
@@ -1945,10 +2027,13 @@
         }
       }
       else {//straight edges
-        // drawLine(v1, v2);//straight lines, alternative to arcs
-        let v1Scaled=v1.mult(globalScaling);
-        let v2Scaled=v2.mult(globalScaling);
-        drawLine(v1Scaled, v2Scaled);//straight lines, alternative to arcs
+        // // drawLine(v1, v2);//straight lines, alternative to arcs
+        // let v1Scaled=v1.mult(globalScaling);
+        // let v2Scaled=v2.mult(globalScaling);
+        // drawLine(v1Scaled, v2Scaled);//straight lines, alternative to arcs
+        
+        var v2Screen=v2.mult(globalScaling).screen();
+        ctx.lineTo(v2Screen.x, v2Screen.y);
       }
     }
     function pathPoincarePoly(vertArr) {//add one polygon's (as an array of indexes in V[]) path to context
@@ -1997,7 +2082,7 @@
     var tilingTransforms=[];
     var inTileTransforms=[];
     var mirrorM; // m of the mirror line y=mx
-
+    
     function setInTileTransforms() {//define the linear transformations used to make the central tile (like order 6 rotational and mirror symmetries (AKA D6) to make a snowflake)
       // if (!initialDrawingReady) return;
       inTileTransforms=[];
@@ -2073,7 +2158,7 @@
       setInTileTransforms();
       clearAll();
     }
-
+    
     // TODO: dynamically set as many as are needed with the current canvas size
     // TODO: scaling based on selected tiling (some euclidean tilings naturally appear bigger than others due to unit edge lengths and different polygons)
     function setTilingTransforms(name=tilingTypeName) {//define the hyperbolic translations used to make the tiling (it applied to each point of the central tile) (like 6 equally spaced, unrotated copies at distance 1, to make a hexagonal tiling)
@@ -2081,7 +2166,7 @@
       // if (!initialDrawingReady) return;
       globalScaling=0.97;
       
-      if (name=="none" && schlafliP==6 && schlafliQ==3) {//euclidean hexagons have a special case
+      if (name=="none" && schlafliP==6 && schlafliQ==3) {//special case for a single euclidean hexagon
         globalScaling=0.6;
       }
       else if (isEuclidean && (name=="hypTest" || name=="regular using schlafli" || name=="anisohedral")) {
@@ -2113,17 +2198,102 @@
           //   tilingTransforms.push(new HypTransform(TAU*(i+0.5)/schlafliP, 2*centerToEdgeMidpointHyp, PI+TAU*i/schlafliP));
           // }
           
-          tilingTransforms=[];
-          for (var i = 0; i < numPolys; i++) {
-            if (true) {
-            // if (P[i].layer==0 || P[i].layer==4) {
-            // if (P[i].layer<=1) {
-            // if (P[i].layer<=2) {
-            // if (P[i].layer==1) {
-            // if (i==0) {
-              tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
+          // if (curvature!=-1) {
+            tilingTransforms=[];
+            for (var i = 0; i < numFlakes && i < numPolys; i++) {
+              if (true) {
+                // if (P[i].layer==0 || P[i].layer==4) {
+                // if (P[i].layer<=1) {
+                // if (P[i].layer<=2) {
+                // if (P[i].layer==1) {
+                // if (i==0) {
+                // console.log(P, i, P[i]);
+                tilingTransforms.push(new HypTransform(P[i].centerAngFromXAxis, P[i].centerToOriginHyp, P[i].vertexOffsetAngle));
+              }
+            }
+          // }
+          // else {
+          if (curvature==1) {// TODO: very ugly
+            if (schlafliP==3 && schlafliQ==5) {
+              // tilingTransforms=[];
+              // let tempTransfArr=[
+              //   [0,0,0],
+              //   [0.1,0,0],
+              // ]
+              // for (var i = 0; i < 20; i++) {
+              //   array[i]
+              // }
+              
+              
+              setPropIfDef(tilingTransforms[4], "rotateAng", PI/12);
+              setPropIfDef(tilingTransforms[5], "rotateAng", -PI/12);
+              setPropIfDef(tilingTransforms[6], "rotateAng", PI/12);
+              setPropIfDef(tilingTransforms[8], "rotateAng", PI/12);
+              
+              let shiftDist10Through15=hypSASGetThirdEdge(centerToVertexHyp, TAU*2/5, centerToVertexHyp+2*centerToEdgeMidpointHyp);
+              let shiftAng10=-hypSASGetAngleAtFirstSide(centerToVertexHyp, TAU*2/5, centerToVertexHyp+2*centerToEdgeMidpointHyp);
+              // console.log(shiftDist10Through15, shiftAng10);
+              
+              setPropIfDef(tilingTransforms[11], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[13], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[15], "rotateAng", 4*PI/12);
+              
+              // if (tilingTransforms[11]) {
+                // console.log(tilingTransforms[11]);
+                setPropIfDef(tilingTransforms[10], "shiftDist", shiftDist10Through15);
+                setPropIfDef(tilingTransforms[10], "shiftAng", shiftAng10);
+                setPropIfDef(tilingTransforms[12], "shiftDist", shiftDist10Through15);
+                setPropIfDef(tilingTransforms[12], "shiftAng", shiftAng10+TAU/3);
+                setPropIfDef(tilingTransforms[14], "shiftDist", shiftDist10Through15);
+                setPropIfDef(tilingTransforms[14], "shiftAng", shiftAng10+2*TAU/3);
+              // }
+              
+              setPropIfDef(tilingTransforms[10], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[12], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[14], "rotateAng", 4*PI/12);
+              
+              setPropIfDef(tilingTransforms[16], "shiftDist", centerToVertexHyp*2+edgeLengthHyp);
+              setPropIfDef(tilingTransforms[16], "shiftAng", 0);
+              setPropIfDef(tilingTransforms[17], "shiftDist", centerToVertexHyp*2+edgeLengthHyp);
+              setPropIfDef(tilingTransforms[17], "shiftAng", 2*PI/3);
+              setPropIfDef(tilingTransforms[18], "shiftDist", centerToVertexHyp*2+edgeLengthHyp);
+              setPropIfDef(tilingTransforms[18], "shiftAng", 4*PI/3);
+              
+              setPropIfDef(tilingTransforms[16], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[17], "rotateAng", 4*PI/12);
+              setPropIfDef(tilingTransforms[18], "rotateAng", 4*PI/12);
+              
+              setPropIfDef(tilingTransforms[19], "shiftDist", PI);
+              setPropIfDef(tilingTransforms[19], "shiftAng", 0);
+              setPropIfDef(tilingTransforms[19], "rotateAng", 0);
+            }
+            else if (schlafliP==3 && schlafliQ==4) {
+              setPropIfDef(tilingTransforms[4], "rotateAng", PI/3);
+              setPropIfDef(tilingTransforms[7], "shiftDist", PI);
+              setPropIfDef(tilingTransforms[7], "shiftAng", 0);
+              setPropIfDef(tilingTransforms[7], "rotateAng", 0);
+            }
+            else if (schlafliP==3 && schlafliQ==3) {
+              
+            }
+            else if (schlafliP==4 && schlafliQ==3) {
+              setPropIfDef(tilingTransforms[5], "rotateAng", 0);
+            }
+            else if (schlafliP==5 && schlafliQ==3) {
+              setPropIfDef(tilingTransforms[6], "rotateAng", PI/5);
+              setPropIfDef(tilingTransforms[7], "rotateAng", PI/5);
+              setPropIfDef(tilingTransforms[8], "rotateAng", PI/5);
+              setPropIfDef(tilingTransforms[9], "rotateAng", PI/5);
+              setPropIfDef(tilingTransforms[10], "rotateAng", PI/5);
+              
+              setPropIfDef(tilingTransforms[11], "shiftDist", PI);
+              setPropIfDef(tilingTransforms[11], "shiftAng", 0);
+              setPropIfDef(tilingTransforms[11], "rotateAng", 0);
             }
           }
+          
+          
+          
           break;
         case "anisohedral":
           tilingTransforms=[//squareflake tiling, "2-colored" with two different rotations
@@ -2302,14 +2472,14 @@
           //   drawSize+=2;
           // }
           // drawSquare(offPoint.x, offPoint.y, drawSize);
-          drawDisk(offPoint.x, offPoint.y, drawSize, ctx);
+          drawDisk(offPoint.x, offPoint.y, drawSize*canvas.height, ctx);
           // if (sh==0) {
           //   drawSize-=2;
           // }
         }
       }
     }
-    function drawAllPoints() {//draw everything that the user has drawn
+    function drawAllUserPoints() {//draw everything that the user has drawn (useful after clearing the canvas)
       let lastPosNum=0;
       let savedColor=drawColorWithErase;// TODO: everything here is bad
       let savedSize=drawSize;
@@ -2389,7 +2559,10 @@
           // pathPoincareEdge(p3Vec, p1Vec, ctx);
           // ctx.stroke();
           
-          // curDSF.segmentLength=(-colorChangeSteps/500%1+1)%1 *0.1;
+          // context.clearRect(0, 0, canvas.width, height);
+          // // // curDSF.segmentLength=(-colorChangeSteps/600%1+1)%1 *1;
+          // curDSF.segmentLength=colorChangeSteps/200;
+          // curDSF.updateSegmentLength();
           // drawFromCurDSF();
           
           // // Testing whether HypTransform works // TODO: looks like it does, but the values created during graph generation are incorrect
@@ -2550,6 +2723,7 @@
           }
           
           centerToVertexEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(HPI, PI/schlafliQ, PI/schlafliP));
+          // console.log(sphAAAGetSideOppositeFirstAngle(HPI, PI/schlafliQ, PI/schlafliP));
 
           centerToEdgeMidpointEuc=hypToEucDist(sphAAAGetSideOppositeFirstAngle(PI/schlafliQ, PI/schlafliP, HPI));
           
@@ -2561,6 +2735,7 @@
         // console.log(d, edgeLengthHyp);
         
         centerToVertexHyp=eucToHypDist(centerToVertexEuc);
+        // console.log(centerToVertexEuc);
         centerToEdgeMidpointHyp=eucToHypDist(centerToEdgeMidpointEuc);
         
         for (var i=0; i<schlafliP; i++) {//first polygon position
@@ -2576,10 +2751,9 @@
         }
       }
       // for (var k=0; k<2; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
-      // for (var k=0; k<1+schlafliP+50; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-      // for (var k=0; k<1+schlafliP; k++) {// GRAPH generation //k is the index of the polygon from which new polygons are being generated
-      for (var k=0; k<numFlakesToAddNeighbors; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
-        // for (var k=0; k<1; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
+      // for (var k=0; k<1+schlafliP; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
+      for (var k=0; k<numFlakes+1; k++) {// graph generation //k is the index of the polygon from which new polygons are being generated
+        // TODO: generating redundant shapes (numFlakes flakes get neighbors generated, the number of flakes > numFlakes)
         // console.log("%ck="+k, "color:lime; font-size:200%");
         // console.log(k, "/", P.length);
         if (typeof(P[k])==="undefined") break;//this polygon is undefined, presumably means that a sphere has been completed
@@ -3043,7 +3217,7 @@
         let v1=P[i].verts[0];
         let v2=P[i].verts[1];
         let parentPoly=P[P[i].next[0]];
-      
+        
         // centerAngFromXAxis, centerToOriginHyp, vertexOffsetAngle
         let parentVertIndex=indexOfElement(parentPoly.verts, P[i].verts[0]);
         // let angleOriginToParentToChild=-PI-parentPoly.centerAngFromXAxis+(0.5-parentVertIndex)*TAU/schlafliP+parentPoly.vertexOffsetAngle;
@@ -3061,15 +3235,16 @@
           // console.log(i, P[i].next[0], P[i].vertexOffsetAngle);
         }
         else {
-          console.log("%c"+i, "font-size:170%");
-          console.log(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
-          console.log(parentPoly.centerAngFromXAxis, "-", hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp));
+          // TODO: i was debugging here and got nowhere. i think these logged values aren't what they should be
+          // console.log("%c"+i, "font-size:170%");
+          // console.log(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
+          // console.log(parentPoly.centerAngFromXAxis, "-", hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp));
           P[i].centerAngFromXAxis=parentPoly.centerAngFromXAxis-hypSASGetAngleAtFirstSide(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
           P[i].centerToOriginHyp=hypSASGetThirdEdge(parentPoly.centerToOriginHyp, angleOriginToParentToChild, 2*centerToEdgeMidpointHyp);
-      
+          
           // P[i].vertexOffsetAngle=0;
           P[i].vertexOffsetAngle=new HypTransform(P[i].centerAngFromXAxis, -P[i].centerToOriginHyp).applyTo(V[P[i].verts[0]].pos).ang();
-      
+          
           // console.log("angleOriginToParentToChild", mod(angleOriginToParentToChild, TAU));
           // console.log(i, P[i].next[0], P[i].centerToOriginHyp);
         }
@@ -3229,7 +3404,7 @@
     
     function redrawAll() {//clear the screen, redraw the background and user drawn points
       redrawBackground();
-      drawAllPoints();
+      drawAllUserPoints();
     }
     
     function clearAll() {//clear the screen, redraw the background and clear user drawings
@@ -3267,13 +3442,24 @@
     
     setWordModeEnabled(true);
     // setWordModeEnabled(false);
-    paused=true;
+    paused=false;
     initialDrawingReady=true;
     
     resize();
     update();
     
-    
+    // /* spherical function test */
+    // for (var i = 0.1; i < 3; i+=0.4) {
+    //   for (var j = 0.1; j < 3; j+=0.4) {
+    //     let x=hypSASGetAngleAtFirstSide(i, HPI, j);
+    //     let y=hypSASGetThirdEdge(i, HPI, j);
+    //     let jPred=hypSASGetThirdEdge(y, x, i);
+    //     // console.log(i, j, x, y, " => ", jPred);
+    //     console.log(j, jPred);
+    //   }
+    // }
+    // console.log("hypSASGetThirdEdge(1, HPI, 1)=", hypSASGetThirdEdge(1, HPI, 1));
+    // console.log(hypSASGetAngleAtFirstSide(0.3, 2.09, 0.3));
     
     // let testWord=[];
     //
@@ -3356,9 +3542,9 @@
         movements.push(mousePositions.length);
       }
     }
-    function selectDrawColor(c) {
-      drawColor=drawColorWithErase=c;
-    }
+    // function selectDrawColor(c) {
+    //   drawColor=drawColorWithErase=c;
+    // }
 
     window.addEventListener("mousemove", function() {
       // if (!paused) {
